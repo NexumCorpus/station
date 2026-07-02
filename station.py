@@ -44,7 +44,12 @@ SUITE_TIMEOUT_S = 900
 
 
 def _registry() -> dict:
-    return json.loads(REG.read_text(encoding="utf-8"))
+    # utf-8-sig: PS5.1/Notepad love to re-save with a BOM; don't die on it.
+    try:
+        return json.loads(REG.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"station.json unreadable at {REG}: {e}")
+        sys.exit(1)
 
 
 def _now() -> str:
@@ -55,6 +60,21 @@ def _spine_append(kind: str, body):
     SPINE.parent.mkdir(exist_ok=True)
     with SPINE.open("a", encoding="utf-8") as f:
         f.write(json.dumps({"t": _now(), "kind": kind, "body": body}) + "\n")
+
+
+def _read_cursor(cur: Path) -> int:
+    # A killed process / concurrent reader can leave a zero-byte offset file;
+    # a corrupt cursor means "re-read from 0", never a crash.
+    try:
+        return int(cur.read_text())
+    except (OSError, ValueError):
+        return 0
+
+
+def _write_cursor(cur: Path, value: int):
+    tmp = cur.with_suffix(".tmp")
+    tmp.write_text(str(value))
+    os.replace(tmp, cur)                        # atomic on Windows + POSIX
 
 
 def _run(cmd: str, cwd: str, timeout: int = 60):
@@ -95,15 +115,21 @@ def _claims_line(claims_path: str) -> str:
     if not p.is_file():
         return "claims none"
     try:
-        claims = json.loads(p.read_text(encoding="utf-8"))
+        claims = json.loads(p.read_text(encoding="utf-8-sig"))
     except json.JSONDecodeError:
         return "claims UNPARSEABLE"
-    cert = [c for c in claims if c.get("verified")]
-    rej = [c for c in claims if not c.get("verified")]
+
+    def state(c):
+        if c.get("verified"):
+            return "CERTIFIED"
+        return "REJECTED" if "rejection" in c else "PENDING"
+
+    cert = sum(1 for c in claims if state(c) == "CERTIFIED")
+    rej = sum(1 for c in claims if state(c) == "REJECTED")
+    pend = sum(1 for c in claims if state(c) == "PENDING")
     last = claims[-1] if claims else {}
-    return (f"claims {len(cert)}certified {len(rej)}rejected | last: "
-            f"{last.get('id', '?')} "
-            f"{'CERTIFIED' if last.get('verified') else 'REJECTED'}")
+    return (f"claims {cert}certified {rej}rejected {pend}pending | last: "
+            f"{last.get('id', '?')} {state(last) if claims else '-'}")
 
 
 def _proc_counts() -> str:
@@ -125,12 +151,12 @@ def _log_freshness(reg: dict) -> list[str]:
         if not p.is_file():
             continue
         age_min = (time.time() - p.stat().st_mtime) / 60
-        cur = CURSORS / f"{name}.offset"
-        seen = int(cur.read_text()) if cur.is_file() else 0
+        seen = _read_cursor(CURSORS / f"{name}.offset")
         unread = p.stat().st_size - seen
         if unread > 0 or age_min < 120:
             out.append(f"log {name} {p.stat().st_size}B "
-                       f"age={age_min:.0f}m unread={max(unread, 0)}B")
+                       f"age={age_min:.0f}m unread={max(unread, 0)}B"
+                       f" -> station log {name}")
     return out
 
 
@@ -156,18 +182,24 @@ def cmd_wake():
 # -------------------------------------------------------------- suites ------
 def cmd_suites(only: str | None = None):
     reg = _registry()
+    suites = reg.get("suites", [])
+    if only:
+        suites = [s for s in suites if s["name"] == only]
+        if not suites:                          # a typo must NEVER read as PASS
+            known = ", ".join(s["name"] for s in reg.get("suites", []))
+            print(f"unknown suite {only}; known: {known}")
+            sys.exit(1)
     results = {}
-    for s in reg.get("suites", []):
-        if only and s["name"] != only:
-            continue
+    for s in suites:
         t0 = time.time()
         code, out = _run(s["cmd"], s["cwd"], timeout=SUITE_TIMEOUT_S)
         tail = out.strip().splitlines()[-1][:120] if out.strip() else ""
         verdict = "PASS" if code == 0 else "FAIL"
         results[s["name"]] = verdict
-        print(f"suite {s['name']:12s} {verdict} {time.time()-t0:5.1f}s | {tail}")
+        print(f"suite {s['name']:12s} {verdict} {time.time()-t0:5.1f}s "
+              f"[{s['cwd']}] | {tail}")
     _spine_append("suites", results)
-    sys.exit(0 if all(v == "PASS" for v in results.values()) else 1)
+    sys.exit(0 if results and all(v == "PASS" for v in results.values()) else 1)
 
 
 # ----------------------------------------------------------------- log ------
@@ -191,11 +223,11 @@ def cmd_log(name: str, tail: int | None = None, full: bool = False):
         return
     CURSORS.mkdir(exist_ok=True)
     cur = CURSORS / f"{name}.offset"
-    seen = int(cur.read_text()) if cur.is_file() else 0
+    seen = _read_cursor(cur)
     if seen > len(data):                        # log was truncated/rotated
         seen = 0
     new = data[seen:]
-    cur.write_text(str(len(data)))
+    _write_cursor(cur, len(data))
     print(new.decode("utf-8", errors="replace") if new
           else f"(no new bytes; {len(data)}B total, cursor current)")
 
@@ -220,7 +252,7 @@ def cmd_regs():
 
 def main():
     args = sys.argv[1:]
-    if not args:
+    if not args or args[0] in ("-h", "--help", "help"):
         print(__doc__)
         return
     cmd = args[0]
@@ -229,9 +261,16 @@ def main():
     elif cmd == "suites":
         cmd_suites(args[1] if len(args) > 1 else None)
     elif cmd == "log":
+        if len(args) < 2 or args[1].startswith("-"):
+            print("usage: station log <name> [--tail N | --full]")
+            sys.exit(1)
         tail = None
         if "--tail" in args:
-            tail = int(args[args.index("--tail") + 1])
+            try:
+                tail = int(args[args.index("--tail") + 1])
+            except (IndexError, ValueError):
+                print("usage: station log <name> [--tail N | --full]")
+                sys.exit(1)
         cmd_log(args[1], tail=tail, full="--full" in args)
     elif cmd == "note":
         cmd_note(" ".join(args[1:]))
