@@ -19,6 +19,6 @@
   "shim":     "E:/atlas-station/_shim.log.err",
   "campaign": "E:/atlas-station/_rde_campaign.log",
   "f2f":      "E:/atlas-station/docs/collab/f2f/transcript.md",
-  "mission1": "E:/boundary/mission1/runs/wave1.log"
+  "mission1": "E:/mission-runs/wave1.log"
  }
 }
