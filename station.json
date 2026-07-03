@@ -8,12 +8,36 @@
  },
  "claims": "E:/atlas-station/CLAIMS.json",
  "suites": [
-  {"name": "atlas-wing",   "cwd": "E:/atlas-station", "cmd": "npm run -s test:wing"},
-  {"name": "atlas-d2",     "cwd": "E:/atlas-station", "cmd": "npm run -s test:wing:d2"},
-  {"name": "atlas-felt",   "cwd": "E:/atlas-station", "cmd": "npm run -s test:wing:felt"},
-  {"name": "atlas-grader", "cwd": "E:/atlas-station", "cmd": "npm run -s test:grader"},
-  {"name": "ege",          "cwd": "E:/emergent-geometry-engine", "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest -q"},
-  {"name": "boundary",     "cwd": "E:/boundary/mission1", "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest tests -q"}
+  {
+   "name": "atlas-wing",
+   "cwd": "E:/atlas-station",
+   "cmd": "npm run -s test:wing"
+  },
+  {
+   "name": "atlas-d2",
+   "cwd": "E:/atlas-station",
+   "cmd": "npm run -s test:wing:d2"
+  },
+  {
+   "name": "atlas-felt",
+   "cwd": "E:/atlas-station",
+   "cmd": "npm run -s test:wing:felt"
+  },
+  {
+   "name": "atlas-grader",
+   "cwd": "E:/atlas-station",
+   "cmd": "npm run -s test:grader"
+  },
+  {
+   "name": "ege",
+   "cwd": "E:/emergent-geometry-engine",
+   "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest -q"
+  },
+  {
+   "name": "boundary",
+   "cwd": "E:/boundary/mission1",
+   "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest tests -q"
+  }
  ],
  "witness": [
   "E:/atlas-station/CLAIMS.json",
@@ -21,13 +45,14 @@
   "E:/station/grimoire.jsonl",
   "E:/mission-runs/results.jsonl",
   "E:/mission-runs/w2_results.jsonl",
-  "E:/demiurge/ledger.jsonl"
+  "E:/demiurge/ledger.jsonl",
+  "E:/station/coggate-ledger.jsonl"
  ],
  "logs": {
-  "shim":     "E:/atlas-station/_shim.log.err",
+  "shim": "E:/atlas-station/_shim.log.err",
   "campaign": "E:/atlas-station/_rde_campaign.log",
-  "f2f":      "E:/atlas-station/docs/collab/f2f/transcript.md",
+  "f2f": "E:/atlas-station/docs/collab/f2f/transcript.md",
   "mission1": "E:/mission-runs/wave1.log",
-  "wave2":    "E:/mission-runs/wave2.log"
+  "wave2": "E:/mission-runs/wave2.log"
  }
 }
