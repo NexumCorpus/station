@@ -127,6 +127,42 @@ index correction of 2026-07-03 was exactly this rule firing).
 
 ---
 
+## 10. The fluid ceiling — investigation findings (2026-07-03)
+
+Question put to the architecture: can it losslessly raise FLUID intelligence?
+
+**Per forward pass: no.** Weights and single-pass inferential depth are
+fixed; no tooling changes them. Claiming otherwise would be theater.
+
+**Per problem, at system level: yes — four mechanisms, each already
+evidenced in this estate's own history:**
+
+1. **Attention hygiene IS cognition.** The same weights reason worse through
+   a stale mega-prefix than a curated window (long-context degradation).
+   Molt, cursors, dense wire, and surgical Reads are therefore not thrift
+   but reasoning-quality mechanisms: a clean window is a smarter mind.
+2. **Pass composition beats pass quality.** One pass convicted Specimen 0;
+   an adversarially-framed second pass exonerated it. Verifier passes killed
+   the memorizer and the honest overfit without being smarter than their
+   proposers. Wherever verification < generation, N cheap passes outperform
+   one brilliant one — the gate is a fluid lift wearing epistemology.
+   Crystallized as plays/refute.md: the belief gate, one cheap pass against
+   every load-bearing claim before it enters a record.
+3. **External working memory (the Turing argument).** Bounded head +
+   unbounded tape = strictly more capable machine. Ledgers/spine are the
+   tape for data; templates/reasoning.md is the tape for THOUGHT — reasoning
+   ledgers that survive molt so multi-session chains compound, with killed
+   hypotheses as the compound interest.
+4. **Decomposition multiplies total attention.** Cold subagents get full,
+   unpolluted windows AND no inherited bias — the only reason the oracle
+   audits were trustworthy. Total attention across a problem >> one window.
+
+Honest boundary: these lift the SYSTEM's ceiling on decomposable,
+verifiable problems. A problem that is irreducibly single-pass-deep — no
+decomposition, no cheap verification, no external state — remains bounded
+by the model. The estate's whole design is to make as few problems as
+possible look like that.
+
 ## The convergence
 
 Read as one design: an organism whose **body** is repositories, whose
