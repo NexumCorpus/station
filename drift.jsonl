@@ -8,3 +8,4 @@
 {"claim": "atlas claims ledger parses and never shrinks below high-water 7", "cmd": "python -c \"import json; c=json.load(open(r'E:/atlas-station/CLAIMS.json',encoding='utf-8-sig')); print('OK' if len(c)>=7 else 'SHRUNK:'+str(len(c)))\"", "expect": "OK"}
 {"claim": "demiurge substrate seal intact", "cmd": "python E:/demiurge/driver.py verify", "expect": "substrate intact"}
 {"claim": "task area maps stay TOTAL over probes (self-report instrument dependency)", "cmd": "python E:/station/checks/area_total.py", "expect": "OK"}
+{"claim": "every SPOOR pin in registered repos resolves + hash matches", "cmd": "python E:/station/checks/pins.py", "expect": "OK"}

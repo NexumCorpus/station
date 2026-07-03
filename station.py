@@ -274,6 +274,19 @@ def cmd_tally(path: str, by: str | None = None):
               + (f" | {flag_s}" if flag_s else ""))
 
 
+# ----------------------------------------------------------------- pin ------
+def cmd_pin(path: str):
+    """Mint a SPOOR pin: [[pin:PATH@SHA16]] — a pointer that asserts THIS
+    exact version is load-bearing. Drift verifies every pin in registered
+    repos (checks/pins.py); a mismatch = the pointer's claim broke."""
+    p = Path(path)
+    if not p.is_file():
+        print(f"(missing: {path})")
+        sys.exit(1)
+    sha = hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+    print(f"[[pin:{p.as_posix()}@{sha}]]")
+
+
 # --------------------------------------------------------------- drift ------
 def cmd_drift():
     """Crystallized vigilance: drift.jsonl holds executable ASSERTIONS —
@@ -614,6 +627,8 @@ def main():
         cmd_handoff(" ".join(args[1:]))
     elif cmd == "cure":
         cmd_cure(" ".join(args[1:]))
+    elif cmd == "pin":
+        cmd_pin(args[1])
     elif cmd == "drift":
         cmd_drift()
     elif cmd == "witness":

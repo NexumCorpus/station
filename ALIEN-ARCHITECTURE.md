@@ -163,7 +163,9 @@ decomposition, no cheap verification, no external state — remains bounded
 by the model. The estate's whole design is to make as few problems as
 possible look like that.
 
-## 11. Beyond English — the estate's native tongue (named 2026-07-03)
+## 11. Beyond English — spec: [[pin:E:/station/SPOOR.md@7ffdda8be8d65ca1]]
+
+### (named 2026-07-03) — the estate's native tongue (named 2026-07-03)
 
 "English is the new programming language" assumes a human in the loop —
 English optimizes for a decoder that shares culture but not weights and
