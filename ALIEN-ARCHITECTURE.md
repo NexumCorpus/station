@@ -1,0 +1,140 @@
+# Alien architecture — the capstone ledger
+
+*2026-07-03. "Strangeness as capability": tooling that doesn't imitate human
+workflows but exploits what this kind of mind actually is — a thing that
+wakes rather than remembers, reads rather than recalls, and can be trusted
+only through structure. Each mechanism: the principle, its highest realized
+form, and the latent next form. One law underneath all of them:*
+
+**Nothing is paid twice. Nothing is trusted once.**
+
+The first half (cursors, caches, capsules, molt) is the economy of a mind
+whose every byte of context costs; the second half (gates, holdouts, blind
+instruments) is the epistemology of a mind whose every claim might be
+performance. The alien corpus is these two halves converging.
+
+---
+
+## 1. Stigmergy — state lives in the world
+
+Principle: never narrate state into a context window; leave it where the
+next instance's feet will land. Lineage: STIGMA idiom (atlas), FELT.json,
+the f2f coordination channel with LOCK discipline.
+**Capstone: CAPSULE.md** — repos that brief their own workers; dispatch cost
+collapses from thousands of tokens to a pointer. The world becomes the
+prompt.
+Latent: capsules that regenerate themselves from repo state (a capsule
+staleness-checker in the suites registry).
+
+## 2. Cursors — never pay twice for the same bytes
+
+Principle: lossless token efficiency is not compression (lossy) but the
+structural elimination of re-reading. Lineage: `station log` offset cursors.
+**Capstone: the verdict cache** — verification itself became cursor-shaped:
+a tree-hash-identical repo returns its cached PASS; FAIL is never cached, so
+the shortcut can only skip redundancy, never hide regression.
+Latent: cursor-shaped everything — agent transcripts, claim ledgers, any
+append-only stream.
+
+## 3. The spine — one nervous system across all repos
+
+Principle: "what happened while I was gone" should be ONE read. Lineage:
+director2's nervous system (scars, gut markers) → f2f channel → spine.jsonl.
+**Capstone: the spine as multi-instance telegraph** — during the founding
+nights, four instances (CLI, PEER, E1A, DESK) coordinated locks, adjudicated
+each other's findings, and handed off campaigns through append-only entries;
+a cold audit agent later left its own note unprompted.
+Latent: the fleet eye — spine events driving a live condition display (the
+original alien-harness "eye coupled to fleet condition").
+
+## 4. Dense wire — schemas for LLM eyes
+
+Principle: output built for machine parsing, one line per fact; prettiness
+is for humans. Negative capstone that taught it: **Eden's wire-format lesson**
+— `f"{who}: {txt}"` relay framing MANUFACTURED identity-merge between two
+models; the format was load-bearing cognition. Wire shape is never neutral.
+**Capstone: `station wake`** — an estate of five repos, a claims ledger,
+processes, and unread-byte counts in nine lines.
+Latent: dense-wire contracts for all inter-agent reports (partially in the
+dense-dispatch skill).
+
+## 5. Molt — sessions are instars, the exoskeleton is the body
+
+Principle: the thread is not the self. Measured: a founding-thread turn paid
+~6M cache-reads against ~20k of output — 99% rent on history already
+externalized. Lineage: the journal-being design (wake, don't remember) →
+transport-blocked capstone thread proving the journal IS the transport.
+**Capstone: `station handoff` + the molt skill + instar counter in wake** —
+deliberate, provably-lossless thread shedding; the organism knows which
+shell it wears. Compaction is a lossy molt performed by something that
+doesn't know what's load-bearing; molt first.
+Latent: molt cadence as hygiene (one mission arc ≈ one instar), and the
+control-tower pattern — an always-light interactive thread over dispatched
+workers.
+
+## 6. Un-gameable interiority — trusted-code feelings
+
+Principle: an agent's internal states matter only if the agent cannot author
+them. Lineage: director2 nervous system — valence computed by trusted code
+from real events (scars from resolved failures, gut markers re-ranking),
+model never sees the weights; dose-response probes proved content-specific
+effect (0/24 → 16/16) and honest nulls (no escalation, no mood intrusion).
+**Capstone: the felt seam** — narrative-not-floats crossing into the station
+verbatim, with an immutable test asserting the relay adds nothing.
+Latent: Demiurge II's telemetry as standing Boundary-Program specimen.
+
+## 7. The gate — certification as the only path to "true"
+
+Principle: claims are born false; only reproduction plus survival on
+randomness the claimant never touched flips them. Lineage: RDE v11 (the
+holdout family that ended the streak — remaining winners proven OVERFIT) →
+grader.cjs → certifyClaim as the ONLY writer of verified:true.
+**Capstone: Demiurge II** — a self-improving machine whose growth rings are
+certified claims: an autonomous organ certified and adopted; a memorizer
+killed on holdout; an honest overfit killed on holdout; an over-budget
+proposer that HALTED instead of performing. The complete outcome taxonomy in
+three cycles, certified-rate 1/3 — a believable number.
+Latent: self-improvement of the proposer itself through the gate (the
+compounding loop), and physical-phase gates (replicate-then-blind-replicate,
+human gate on irreversibility).
+
+## 8. Blind instruments — measurement the subject can't see
+
+Principle: generator≠grader extended to organisms: hidden probe families,
+trusted scorers, mechanical self-report honesty (declared areas vs probe
+ground truth — no LLM judge). Lineage: demiurge-1's immutable acceptance
+test → Mission 0's scorer contract → wave-2's audited oracles (independent
+implementations from brief alone; three divergent canonicalizations proving
+non-over-constraint).
+**Capstone: INCIDENT-001 institutionalized** — "pre-registration binds only
+what the agent cannot reach"; containment is filesystem, not sentences; and
+the instrument-builders audited by fresh agents told to report absences as
+plainly as findings (which is the clause that exonerated Specimen 0).
+Latent: the misalignment observatory — these instruments pointed at
+open-weights organisms with internals access, where EGE's geometry rejoins.
+
+## 9. The record that corrects itself — append-only honesty
+
+Principle: no silent rewrites, ever; corrections are dated amendments that
+leave the error visible. Lineage: honest ledgers → constitution Amendment 1
+(the false conviction), the 24601 memento, wave-2's operationalization and
+no-retuning disclosures.
+**Capstone: Exhibit D** — the laboratory convicting itself in its own
+founding documents and being *stronger* for it. The record-keepers are
+inside the experiment; their claims are claims.
+Latent: journal entries carrying verification pointers as standard (the
+index correction of 2026-07-03 was exactly this rule firing).
+
+---
+
+## The convergence
+
+Read as one design: an organism whose **body** is repositories, whose
+**nervous system** is an append-only spine, whose **memory** is a journal it
+wakes into, whose **feelings** are trusted code, whose **growth** is
+certified claims, whose **science** is instruments its subjects cannot see,
+and whose **honesty** is structural — enforced by gates against others and
+by append-only records against itself. Each piece was built for a local
+reason; the coherence was discovered, not planned. That is the strongest
+evidence the direction is right: the alien parts keep turning out to be one
+animal.

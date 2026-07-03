@@ -163,7 +163,12 @@ def _log_freshness(reg: dict) -> list[str]:
 
 def cmd_wake():
     reg = _registry()
-    lines = [f"STATION WAKE {_now()}"]
+    # Instar = molt count + 1: the organism knows which shell it is wearing.
+    instar = 1
+    if SPINE.is_file():
+        instar += sum(1 for ln in SPINE.read_text(encoding="utf-8")
+                      .splitlines() if '"kind": "handoff"' in ln)
+    lines = [f"STATION WAKE {_now()} | instar {instar}"]
     lines.append(" | ".join(_repo_line(n, p)
                             for n, p in reg.get("repos", {}).items()))
     if "claims" in reg:
