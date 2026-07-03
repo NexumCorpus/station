@@ -274,6 +274,34 @@ def cmd_tally(path: str, by: str | None = None):
               + (f" | {flag_s}" if flag_s else ""))
 
 
+# ---------------------------------------------------------------- cure ------
+def cmd_cure(query: str):
+    """Crystallized debugging: match an error fragment against the grimoire
+    (grimoire.jsonl: sig / cure / paid). One lookup replaces a re-diagnosis
+    cycle. Reflex: hit an error -> `station cure \"<fragment>\"` FIRST."""
+    g = HERE / "grimoire.jsonl"
+    if not g.is_file():
+        print("(no grimoire)")
+        sys.exit(1)
+    q = set(query.lower().split())
+    scored = []
+    for ln in g.read_text(encoding="utf-8").splitlines():
+        if not ln.strip():
+            continue
+        e = json.loads(ln)
+        text = (e["sig"] + " " + e["cure"]).lower()
+        score = sum(1 for w in q if w in text)
+        if score:
+            scored.append((score, e))
+    if not scored:
+        print(f"(no grimoire match for: {query} — if you solve it, ADD IT: "
+              f"append sig/cure/paid to {g})")
+        return
+    for score, e in sorted(scored, key=lambda t: -t[0])[:3]:
+        print(f"[{score}] {e['sig']}\n    CURE: {e['cure']}\n"
+              f"    paid: {e['paid']}")
+
+
 # ------------------------------------------------------------- handoff ------
 def cmd_handoff(next_actions: str = ""):
     """Write E:\\station\\HANDOFF.md — the molt artifact. A thread is shed
@@ -466,6 +494,8 @@ def main():
         cmd_quota(float(args[1]) if len(args) > 1 else 5.0)
     elif cmd == "handoff":
         cmd_handoff(" ".join(args[1:]))
+    elif cmd == "cure":
+        cmd_cure(" ".join(args[1:]))
     elif cmd == "log":
         if len(args) < 2 or args[1].startswith("-"):
             print("usage: station log <name> [--tail N | --full]")
