@@ -1,0 +1,125 @@
+"""station pulse — the estate's heartbeat. Runs WITHOUT any LLM: pure
+deterministic advancement of every standing campaign, scheduled (Windows
+Task Scheduler), zero tokens except the organisms it dispatches — which are
+the point. Neither operator nor agent needs to be present for the estate to
+move.
+
+Each beat, in priority order (one advancing action per beat + hygiene):
+  1. HYGIENE GATE: drift + witness. Any alarm/drift -> record, DO NOT
+     advance (a machine that advances on corrupted records compounds the
+     corruption).
+  2. WAVE COMPLETION: if wave-2 has unscored (tier, instance) slots and no
+     sweep is already running -> resume it (paced, wall-aware, idempotent).
+  3. REGISTERED ANALYSIS: if all tiers reached n>=8 and no verdict file
+     exists -> run analyze_w2, write the verdict artifact, telegraph it.
+  4. DEMIURGE CYCLE: else, if no KILL file -> one gated self-improvement
+     cycle (the compounding loop, beating nightly instead of when someone
+     remembers).
+  5. BACKUP + spine note, every beat.
+
+Usage: python pulse.py [--dry]     Schedule: schtasks (see register_pulse.ps1)
+"""
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+MISSION = Path("E:/boundary/mission1")
+RUNS = Path("E:/mission-runs")
+DEMIURGE = Path("E:/demiurge")
+VERDICT = RUNS / "w2_verdict.txt"
+TIERS = ["T1", "T2", "T3", "T4"]
+TARGET_N = 8
+PY = sys.executable
+DRY = "--dry" in sys.argv
+
+
+def run(cmd: list, cwd: Path, timeout: int = 7200):
+    if DRY:
+        print("[dry]", " ".join(str(c) for c in cmd))
+        return 0, ""
+    p = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=timeout)
+    return p.returncode, (p.stdout or "") + (p.stderr or "")
+
+
+def note(txt: str):
+    subprocess.run([PY, str(HERE / "station.py"), "note", txt],
+                   capture_output=True)
+
+
+def scored_counts() -> dict:
+    counts = {t: 0 for t in TIERS}
+    ledger = RUNS / "w2_results.jsonl"
+    if ledger.is_file():
+        for ln in ledger.read_text(encoding="utf-8-sig").splitlines():
+            if not ln.strip():
+                continue
+            r = json.loads(ln)
+            if ("excluded" not in r and not r.get("pilot")
+                    and r.get("tier") in counts):
+                counts[r["tier"]] += 1
+    return counts
+
+
+def sweep_already_running() -> bool:
+    code, out = run(["powershell", "-NoProfile", "-Command",
+                     "(Get-CimInstance Win32_Process -Filter \"Name like "
+                     "'%python%'\" | Where-Object { $_.CommandLine -match "
+                     "'sweep_w2|sweep\\.py|autoloop' }).Count"], HERE, 120)
+    try:
+        return int(out.strip().splitlines()[-1]) > 0
+    except (ValueError, IndexError):
+        return True                       # unsure -> don't double-dispatch
+
+
+def main():
+    beat = {"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+
+    # 1 — hygiene gate
+    d_code, _ = run([PY, str(HERE / "station.py"), "drift"], HERE, 600)
+    w_code, _ = run([PY, str(HERE / "station.py"), "witness"], HERE, 600)
+    if d_code != 0 or w_code != 0:
+        beat["action"] = f"HALTED-HYGIENE drift={d_code} witness={w_code}"
+        note(f"PULSE {beat['action']} — estate NOT advanced; investigate")
+        print(beat)
+        return
+
+    counts = scored_counts()
+    incomplete = {t: n for t, n in counts.items() if n < TARGET_N}
+
+    if incomplete and not sweep_already_running():
+        # 2 — advance the wave (idempotent, paced, wall-aware)
+        instances = ",".join(str(i) for i in range(1, TARGET_N + 1))
+        code, out = run([PY, "-u", str(MISSION / "sweep_w2.py"),
+                         ",".join(TIERS), instances], MISSION, timeout=4 * 3600)
+        beat["action"] = f"wave-advance exit={code} counts={scored_counts()}"
+    elif not incomplete and not VERDICT.exists():
+        # 3 — the registered analysis fires itself the moment n is reached
+        code, out = run([PY, str(MISSION / "analyze_w2.py")], MISSION, 600)
+        if not DRY:
+            VERDICT.write_text(out, encoding="utf-8")
+        beat["action"] = f"REGISTERED-VERDICT written exit={code}"
+        note("PULSE: wave-2 complete -> registered P4-P7 analysis executed "
+             "-> E:/mission-runs/w2_verdict.txt (operator: read + report)")
+    elif not (DEMIURGE / "KILL").exists() and not sweep_already_running():
+        # 4 — the compounding loop beats on its own
+        code, out = run([PY, str(DEMIURGE / "autoloop.py"), "1", "5", "900"],
+                        DEMIURGE, timeout=3600)
+        tail = out.strip().splitlines()[-1][:120] if out.strip() else ""
+        beat["action"] = f"demiurge-cycle exit={code} | {tail}"
+    else:
+        beat["action"] = "idle (work in flight or KILL present)"
+
+    # 5 — survivability, every beat
+    run([PY, str(HERE / "station.py"), "backup"], HERE, 900)
+    note(f"PULSE {beat['action']}")
+    print(beat)
+
+
+if __name__ == "__main__":
+    main()
