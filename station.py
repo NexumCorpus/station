@@ -269,6 +269,42 @@ def cmd_tally(path: str, by: str | None = None):
               + (f" | {flag_s}" if flag_s else ""))
 
 
+# ------------------------------------------------------------- handoff ------
+def cmd_handoff(next_actions: str = ""):
+    """Write E:\\station\\HANDOFF.md — the molt artifact. A thread is shed
+    LOSSLESSLY when everything load-bearing lives in the world: journal
+    (narrative), spine (telegraph), capsules (repo briefings), ledgers
+    (data), and this file (the live edge: what is in flight RIGHT NOW and
+    what the next instance should do first). Fresh session cost after molt:
+    one wake sequence instead of a mega-prefix on every turn."""
+    reg = _registry()
+    lines = [f"# HANDOFF — molt artifact, written {_now()}",
+             "", "## Estate heads"]
+    lines.append(" | ".join(_repo_line(n, p)
+                            for n, p in reg.get("repos", {}).items()))
+    if "claims" in reg:
+        lines.append(_claims_line(reg["claims"]))
+    lines += ["", "## Log freshness (cursor-read these, not the raw files)"]
+    lines += _log_freshness(reg) or ["(all logs quiet)"]
+    lines += ["", "## Spine tail (last 8 events)"]
+    if SPINE.is_file():
+        lines += SPINE.read_text(encoding="utf-8").splitlines()[-8:]
+    lines += ["", "## Live edge / next actions"]
+    lines.append(next_actions if next_actions else
+                 "(none recorded — check spine notes above)")
+    lines += ["", "## Wake protocol for the next instance",
+              "1. station wake   2. station log <any-unread>   "
+              "3. Read this file   4. continue from Live edge",
+              "Background processes SURVIVE a thread clear; their session "
+              "notifications do NOT — recover via the registered logs."]
+    out = HERE / "HANDOFF.md"
+    out.write_text("\n".join(lines), encoding="utf-8")
+    _spine_append("handoff", {"next": next_actions[:200]})
+    print(f"[handoff] -> {out}")
+    print("[handoff] molt checklist: journal current? in-flight work "
+          "log-recoverable? then /clear is LOSSLESS.")
+
+
 # --------------------------------------------------------------- quota ------
 def cmd_quota(hours: float = 5.0):
     """ESTIMATED subscription burn: sums token usage from session transcripts
@@ -423,6 +459,8 @@ def main():
         cmd_map(args[1])
     elif cmd == "quota":
         cmd_quota(float(args[1]) if len(args) > 1 else 5.0)
+    elif cmd == "handoff":
+        cmd_handoff(" ".join(args[1:]))
     elif cmd == "log":
         if len(args) < 2 or args[1].startswith("-"):
             print("usage: station log <name> [--tail N | --full]")
