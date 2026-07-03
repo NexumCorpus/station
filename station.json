@@ -4,7 +4,10 @@
   "ege": "E:/emergent-geometry-engine",
   "rde": "E:/recursive-discovery-engine",
   "director2": "E:/director2",
-  "boundary": "E:/boundary"
+  "boundary": "E:/boundary",
+  "station": "E:/station",
+  "demiurge": "E:/demiurge",
+  "continuity": "E:/continuity"
  },
  "claims": "E:/atlas-station/CLAIMS.json",
  "suites": [
