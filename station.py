@@ -24,6 +24,7 @@ Commands:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -180,7 +181,18 @@ def cmd_wake():
 
 
 # -------------------------------------------------------------- suites ------
-def cmd_suites(only: str | None = None):
+def _tree_key(cwd: str) -> str:
+    """Hash of HEAD + working-tree status: identical key => identical tree."""
+    _, head = _run("git rev-parse HEAD", cwd, timeout=30)
+    _, porc = _run("git status --porcelain", cwd, timeout=30)
+    _, diff = _run("git diff --stat", cwd, timeout=30)
+    return hashlib.sha256((head + porc + diff).encode()).hexdigest()[:16]
+
+
+def cmd_suites(only: str | None = None, force: bool = False):
+    """Verdict cache (lossless by tree-hash): a suite whose repo tree is
+    byte-identical to its last PASS returns the cached verdict instead of
+    re-running. FAILs are never cached. --force re-runs everything."""
     reg = _registry()
     suites = reg.get("suites", [])
     if only:
@@ -189,17 +201,94 @@ def cmd_suites(only: str | None = None):
             known = ", ".join(s["name"] for s in reg.get("suites", []))
             print(f"unknown suite {only}; known: {known}")
             sys.exit(1)
-    results = {}
+    CURSORS.mkdir(exist_ok=True)
+    cache_p = CURSORS / "suites.cache.json"
+    try:
+        cache = json.loads(cache_p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        cache = {}
+    results, cached_n = {}, 0
     for s in suites:
+        key = _tree_key(s["cwd"])
+        hit = cache.get(s["name"])
+        if not force and hit and hit.get("key") == key \
+                and hit.get("verdict") == "PASS":
+            results[s["name"]] = "PASS"
+            cached_n += 1
+            print(f"suite {s['name']:12s} PASS (cached @{key[:8]}) "
+                  f"[{s['cwd']}] | {hit.get('tail', '')}")
+            continue
         t0 = time.time()
         code, out = _run(s["cmd"], s["cwd"], timeout=SUITE_TIMEOUT_S)
         tail = out.strip().splitlines()[-1][:120] if out.strip() else ""
         verdict = "PASS" if code == 0 else "FAIL"
         results[s["name"]] = verdict
+        if verdict == "PASS":
+            cache[s["name"]] = {"key": key, "verdict": "PASS", "tail": tail,
+                                "t": _now()}
+        else:
+            cache.pop(s["name"], None)
         print(f"suite {s['name']:12s} {verdict} {time.time()-t0:5.1f}s "
               f"[{s['cwd']}] | {tail}")
-    _spine_append("suites", results)
-    sys.exit(0 if results and all(v == "PASS" for v in results.values()) else 1)
+    tmp = cache_p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(cache, indent=1), encoding="utf-8")
+    os.replace(tmp, cache_p)
+    _spine_append("suites", {**results, "_cached": cached_n})
+    sys.exit(0 if results and all(v == "PASS" for k, v in results.items()
+                                  if not k.startswith("_")) else 1)
+
+
+# --------------------------------------------------------------- tally ------
+def cmd_tally(path: str, by: str | None = None):
+    """Dense aggregation of any JSONL ledger: one line per group — count +
+    mean of every numeric field. Replaces ad-hoc parsing one-liners."""
+    p = Path(path)
+    if not p.is_file():
+        print(f"(missing: {path})")
+        sys.exit(1)
+    rows = [json.loads(ln) for ln in p.read_text(encoding="utf-8-sig")
+            .splitlines() if ln.strip()]
+    groups: dict = {}
+    for r in rows:
+        groups.setdefault(str(r.get(by, "*")) if by else "*", []).append(r)
+    for g in sorted(groups):
+        rs = groups[g]
+        nums: dict = {}
+        for r in rs:
+            for k, v in r.items():
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    nums.setdefault(k, []).append(v)
+        stats = " ".join(f"{k}={sum(v)/len(v):.3g}" for k, v in sorted(nums.items()))
+        flags = {}
+        for r in rs:
+            for k, v in r.items():
+                if isinstance(v, str) and k not in (by,):
+                    flags[k] = flags.get(k, 0) + 1
+        flag_s = " ".join(f"{k}:{c}" for k, c in sorted(flags.items()))
+        print(f"{g:12s} n={len(rs):3d} {stats}"
+              + (f" | {flag_s}" if flag_s else ""))
+
+
+# ----------------------------------------------------------------- map ------
+def cmd_map(path: str):
+    """AST outline of a python file: one line per def/class with its line
+    number — so Reads become surgical offsets, never whole files."""
+    import ast
+    p = Path(path)
+    try:
+        tree = ast.parse(p.read_text(encoding="utf-8-sig", errors="replace"))
+    except (OSError, SyntaxError) as e:
+        print(f"(unmappable: {e})")
+        sys.exit(1)
+    n_lines = len(p.read_text(encoding="utf-8-sig", errors="replace")
+                  .splitlines())
+    print(f"map {path} {n_lines}L")
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            args = ", ".join(a.arg for a in node.args.args)
+            print(f"  L{node.lineno:<5d} def {node.name}({args})")
+        elif isinstance(node, ast.ClassDef):
+            print(f"  L{node.lineno:<5d} class {node.name}")
 
 
 # ----------------------------------------------------------------- log ------
@@ -259,7 +348,16 @@ def main():
     if cmd == "wake":
         cmd_wake()
     elif cmd == "suites":
-        cmd_suites(args[1] if len(args) > 1 else None)
+        force = "--force" in args
+        rest = [a for a in args[1:] if not a.startswith("-")]
+        cmd_suites(rest[0] if rest else None, force=force)
+    elif cmd == "tally":
+        cmd_tally(args[1], args[3] if len(args) > 3 and args[2] == "--by"
+                  else (args[2].split("=", 1)[1] if len(args) > 2
+                        and args[2].startswith("--by=") else
+                        (args[2] if len(args) > 2 else None)))
+    elif cmd == "map":
+        cmd_map(args[1])
     elif cmd == "log":
         if len(args) < 2 or args[1].startswith("-"):
             print("usage: station log <name> [--tail N | --full]")
