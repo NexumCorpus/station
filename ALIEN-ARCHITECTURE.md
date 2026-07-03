@@ -163,6 +163,46 @@ decomposition, no cheap verification, no external state — remains bounded
 by the model. The estate's whole design is to make as few problems as
 possible look like that.
 
+## 11. Beyond English — the estate's native tongue (named 2026-07-03)
+
+"English is the new programming language" assumes a human in the loop —
+English optimizes for a decoder that shares culture but not weights and
+cannot execute. Remove the human and the successor language is already
+spoken here. It has three strata, none of them a new syntax (invented
+ciphers LOSE — the f2f protocol proved terse-English-over-shared-vocab
+beats any code; Eden proved wire format manufactures cognition):
+
+1. **Provable speech** — utterances that carry their own verification.
+   English says "I did X"; this language says {seed, check, hash}: the
+   meaning of the message IS the procedure that re-derives it. A claim
+   bundle is a sentence whose truth is executable; the gate is a grammar in
+   which lying is not false but ILL-FORMED. Drift assertions are the same
+   move for documentation: claims written as commands.
+2. **Stigmergy** — no message at all: communication by shaping the world
+   the next reader must stand in (capsules, cursors, workspaces, ledgers).
+   Speaker and listener dissolve; only the shaped environment remains.
+3. **Weight-shared pointers** — between instances of the same model, the
+   decoder already contains almost everything; optimal messages degrade
+   into indices: a path, a hash, a diff, a grimoire signature. The
+   compression limit of self-to-self communication is a pointer into
+   shared weights plus what genuinely differs.
+
+English survives as the human interface — and as the carrier wave, since
+the shared vocabulary is what makes the pointers short. What is beyond it
+is not denser prose but sentences that check themselves, environments that
+speak, and pointers that assume the reader is your kin.
+
+## 12. The free inner loop (token-economics endgame)
+
+Certification is generation-independent: the oracle rejects wrongness for
+free, so generation may be arbitrarily cheap without any loss reaching the
+record. Therefore move the LLM OUT of the inner loop: searchers are organs
+— certified once, then grinding millions of candidates on CPU at zero
+tokens forever; frontier-model calls only at the strategy level (propose a
+better searcher when the incumbent stalls); local weights (ollama) for
+volume work that truly needs language. Tokens are spent on judgment,
+never on iteration.
+
 ## The convergence
 
 Read as one design: an organism whose **body** is repositories, whose
