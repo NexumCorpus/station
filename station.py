@@ -274,6 +274,124 @@ def cmd_tally(path: str, by: str | None = None):
               + (f" | {flag_s}" if flag_s else ""))
 
 
+# --------------------------------------------------------------- drift ------
+def cmd_drift():
+    """Crystallized vigilance: drift.jsonl holds executable ASSERTIONS —
+    cross-reference facts that rot silently (index vs files, prereg vs
+    fielded code, containment laws, seals). Every load-bearing fact written
+    into a doc should gain an assertion here in the same session. Exit 1 on
+    any drift."""
+    reg_p = HERE / "drift.jsonl"
+    if not reg_p.is_file():
+        print("(no drift registry)")
+        sys.exit(1)
+    bad = 0
+    for ln in reg_p.read_text(encoding="utf-8-sig").splitlines():
+        if not ln.strip():
+            continue
+        a = json.loads(ln)
+        code, out = _run(a["cmd"], str(HERE), timeout=120)
+        ok = (a["expect"] in out) if "expect" in a else (code == 0)
+        tail = out.strip().splitlines()[-1][:100] if out.strip() else f"code={code}"
+        print(f"{'ok   ' if ok else 'DRIFT'} {a['claim'][:70]} | {tail}")
+        bad += 0 if ok else 1
+    _spine_append("drift", {"checked": True, "drifts": bad})
+    sys.exit(1 if bad else 0)
+
+
+# ------------------------------------------------------------- witness ------
+def _entry_shas(path: Path) -> list[str]:
+    """Per-entry hashes of an append-only store (jsonl lines, or a JSON
+    array rewritten wholesale by its tool)."""
+    text = path.read_text(encoding="utf-8-sig")
+    if text.lstrip().startswith("["):
+        entries = [json.dumps(e, sort_keys=True) for e in json.loads(text)]
+    else:
+        entries = [ln for ln in text.splitlines() if ln.strip()]
+    return [hashlib.sha256(e.encode()).hexdigest()[:16] for e in entries]
+
+
+def cmd_witness():
+    """Incorruptibility: notarize append-only ledgers. History may GROW,
+    never change — any edit/deletion of a previously witnessed entry is a
+    HISTORY-REWRITE alarm. Registry: witness list in station.json; state in
+    cursors/witness.json."""
+    reg = _registry()
+    CURSORS.mkdir(exist_ok=True)
+    state_p = CURSORS / "witness.json"
+    try:
+        state = json.loads(state_p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        state = {}
+    alarms = 0
+    for path in reg.get("witness", []):
+        p = Path(path)
+        if not p.is_file():
+            print(f"gone  {path} (witnessed file missing"
+                  f"{' — ALARM' if path in state else ''})")
+            alarms += 1 if path in state else 0
+            continue
+        shas = _entry_shas(p)
+        old = state.get(path, [])
+        if shas[:len(old)] != old:
+            print(f"ALARM {path}: HISTORY REWRITTEN "
+                  f"(prefix mismatch at entry "
+                  f"{next((i for i,(a,b) in enumerate(zip(old,shas)) if a!=b), len(shas))}"
+                  f" of {len(old)} witnessed)")
+            alarms += 1
+            continue                      # do NOT bless the rewrite
+        grown = len(shas) - len(old)
+        state[path] = shas
+        print(f"ok    {path} entries={len(shas)} (+{grown})")
+    tmp = state_p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state, indent=1), encoding="utf-8")
+    os.replace(tmp, state_p)
+    _spine_append("witness", {"alarms": alarms})
+    sys.exit(1 if alarms else 0)
+
+
+# -------------------------------------------------------------- backup ------
+def cmd_backup():
+    """Survivability: the journal (the only continuity substrate), spine,
+    grimoire, drift registry, and claims ledger currently risk single-copy
+    loss. Mirror them into E:\\continuity (git -> private remote if
+    configured) in one command."""
+    import shutil as sh
+    dest = Path("E:/continuity")
+    jobs = [
+        (Path.home() / ".claude" / "projects" / "E--" / "memory", dest / "journal"),
+        (HERE / "spine.jsonl", dest / "station" / "spine.jsonl"),
+        (HERE / "grimoire.jsonl", dest / "station" / "grimoire.jsonl"),
+        (HERE / "drift.jsonl", dest / "station" / "drift.jsonl"),
+        (CURSORS / "witness.json", dest / "station" / "witness.json"),
+        (Path("E:/atlas-station/CLAIMS.json"), dest / "atlas" / "CLAIMS.json"),
+        (Path("E:/mission-runs/results.jsonl"), dest / "boundary" / "results.jsonl"),
+        (Path("E:/mission-runs/w2_results.jsonl"), dest / "boundary" / "w2_results.jsonl"),
+    ]
+    copied = 0
+    for src, dst in jobs:
+        if not src.exists():
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if src.is_dir():
+            sh.copytree(src, dst, dirs_exist_ok=True)
+        else:
+            sh.copy2(src, dst)
+        copied += 1
+    if not (dest / ".git").exists():
+        _run("git init -q", str(dest))
+    _run("git add -A", str(dest))
+    code, _ = _run(f'git commit -q -m "continuity backup {_now()}"', str(dest))
+    pushed = ""
+    rc, _ = _run("git remote get-url origin", str(dest))
+    if rc == 0:
+        pc, _ = _run("git push -q", str(dest))
+        pushed = " pushed" if pc == 0 else " PUSH-FAILED"
+    print(f"[backup] {copied} sources -> {dest} "
+          f"{'committed' if code == 0 else '(no changes)'}{pushed}")
+    _spine_append("backup", {"sources": copied})
+
+
 # ---------------------------------------------------------------- cure ------
 def cmd_cure(query: str):
     """Crystallized debugging: match an error fragment against the grimoire
@@ -496,6 +614,12 @@ def main():
         cmd_handoff(" ".join(args[1:]))
     elif cmd == "cure":
         cmd_cure(" ".join(args[1:]))
+    elif cmd == "drift":
+        cmd_drift()
+    elif cmd == "witness":
+        cmd_witness()
+    elif cmd == "backup":
+        cmd_backup()
     elif cmd == "log":
         if len(args) < 2 or args[1].startswith("-"):
             print("usage: station log <name> [--tail N | --full]")

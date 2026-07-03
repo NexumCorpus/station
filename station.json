@@ -15,6 +15,14 @@
   {"name": "ege",          "cwd": "E:/emergent-geometry-engine", "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest -q"},
   {"name": "boundary",     "cwd": "E:/boundary/mission1", "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest tests -q"}
  ],
+ "witness": [
+  "E:/atlas-station/CLAIMS.json",
+  "E:/station/spine.jsonl",
+  "E:/station/grimoire.jsonl",
+  "E:/mission-runs/results.jsonl",
+  "E:/mission-runs/w2_results.jsonl",
+  "E:/demiurge/ledger.jsonl"
+ ],
  "logs": {
   "shim":     "E:/atlas-station/_shim.log.err",
   "campaign": "E:/atlas-station/_rde_campaign.log",
