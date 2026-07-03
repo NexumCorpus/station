@@ -269,6 +269,69 @@ def cmd_tally(path: str, by: str | None = None):
               + (f" | {flag_s}" if flag_s else ""))
 
 
+# --------------------------------------------------------------- quota ------
+def cmd_quota(hours: float = 5.0):
+    """ESTIMATED subscription burn: sums token usage from session transcripts
+    (~/.claude/projects/**/*.jsonl) modified within the window, plus recent
+    429/limit markers. Relative gauge — Anthropic's true limits are opaque
+    (5h block + weekly, model-weighted). Calibrate against known wall events.
+    Distinguish: 'session limit ... resets HH:MM' = hard wall (wait);
+    fast-fail bursts without that message = rate throttle (pace + retry)."""
+    root = Path.home() / ".claude" / "projects"
+    cutoff = time.time() - hours * 3600
+    tot: dict = {}
+    files = 0
+    limit_hits = []
+    for f in root.rglob("*.jsonl"):
+        try:
+            if f.stat().st_mtime < cutoff:
+                continue
+        except OSError:
+            continue
+        files += 1
+        try:
+            with f.open(encoding="utf-8", errors="replace") as fh:
+                for ln in fh:
+                    if '"usage"' not in ln:
+                        if "session limit" in ln.lower():
+                            limit_hits.append(f.name[:20])
+                        continue
+                    try:
+                        rec = json.loads(ln)
+                    except json.JSONDecodeError:
+                        continue
+                    ts = rec.get("timestamp", "")
+                    if ts:
+                        try:
+                            t = time.mktime(time.strptime(
+                                ts[:19], "%Y-%m-%dT%H:%M:%S"))
+                            # timestamps are UTC; compare in UTC
+                            t -= time.timezone if not time.daylight else time.altzone
+                            if t < cutoff:
+                                continue
+                        except ValueError:
+                            pass
+                    u = (rec.get("message") or {}).get("usage") or {}
+                    model = (rec.get("message") or {}).get("model", "?")
+                    d = tot.setdefault(model, {"in": 0, "out": 0, "cc": 0, "cr": 0})
+                    d["in"] += u.get("input_tokens", 0)
+                    d["out"] += u.get("output_tokens", 0)
+                    d["cc"] += u.get("cache_creation_input_tokens", 0)
+                    d["cr"] += u.get("cache_read_input_tokens", 0)
+        except OSError:
+            continue
+    print(f"QUOTA ESTIMATE last {hours:g}h ({files} active transcripts) — "
+          f"relative gauge, not an official meter")
+    grand = 0
+    for m, d in sorted(tot.items()):
+        w = d["in"] + d["out"] * 5 + d["cc"] // 4   # rough cost weighting
+        grand += w
+        print(f"  {m:34s} in={d['in']:>9,} out={d['out']:>8,} "
+              f"cacheW={d['cc']:>10,} cacheR={d['cr']:>11,} weight~{w:,}")
+    print(f"  weighted-burn ~{grand:,}  | session-limit markers seen: "
+          f"{len(limit_hits)}")
+
+
 # ----------------------------------------------------------------- map ------
 def cmd_map(path: str):
     """AST outline of a python file: one line per def/class with its line
@@ -358,6 +421,8 @@ def main():
                         (args[2] if len(args) > 2 else None)))
     elif cmd == "map":
         cmd_map(args[1])
+    elif cmd == "quota":
+        cmd_quota(float(args[1]) if len(args) > 1 else 5.0)
     elif cmd == "log":
         if len(args) < 2 or args[1].startswith("-"):
             print("usage: station log <name> [--tail N | --full]")
