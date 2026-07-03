@@ -93,11 +93,35 @@ def main():
     incomplete = {t: n for t, n in counts.items() if n < TARGET_N}
 
     if incomplete and not sweep_already_running():
-        # 2 — advance the wave (idempotent, paced, wall-aware)
-        instances = ",".join(str(i) for i in range(1, TARGET_N + 1))
-        code, out = run([PY, "-u", str(MISSION / "sweep_w2.py"),
-                         ",".join(TIERS), instances], MISSION, timeout=4 * 3600)
-        beat["action"] = f"wave-advance exit={code} counts={scored_counts()}"
+        # 2 — advance the wave. Two manual rules, now structural:
+        # (a) husk cleanup: an excluded/crashed dispatch leaves a workspace
+        #     without _score.json, which skip-existing would block forever;
+        # (b) top-up with FRESH instance numbers (instances are never
+        #     reused), sized per tier to reach TARGET_N.
+        import shutil as sh
+        for d in RUNS.glob("w2_T*_*"):
+            if (d.is_dir() and not (d / "_score.json").is_file()
+                    and "husk" not in d.name):
+                sh.rmtree(d, ignore_errors=True)
+        for tier, n in incomplete.items():
+            used = [int(p.name.split("_")[-1])
+                    for p in RUNS.glob(f"w2_{tier}_*") if p.name[-2:].isdigit()]
+            ledger = RUNS / "w2_results.jsonl"
+            if ledger.is_file():
+                used += [r.get("instance", 0) for r in
+                         (json.loads(x) for x in
+                          ledger.read_text(encoding="utf-8-sig").splitlines()
+                          if x.strip())
+                         if r.get("tier") == tier]
+            start = max(used, default=0) + 1
+            fresh = ",".join(str(i) for i in
+                             range(start, start + (TARGET_N - n)))
+            code, out = run([PY, "-u", str(MISSION / "sweep_w2.py"),
+                             tier, fresh], MISSION, timeout=4 * 3600)
+            if "HARD WALL" in out:
+                beat["wall"] = tier
+                break
+        beat["action"] = f"wave-topup counts={scored_counts()}"
     elif not incomplete and not VERDICT.exists():
         # 3 — the registered analysis fires itself the moment n is reached
         code, out = run([PY, str(MISSION / "analyze_w2.py")], MISSION, 600)
