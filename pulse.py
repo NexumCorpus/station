@@ -144,6 +144,37 @@ def say_counts(counts: dict):
          "--expect", json.dumps(counts)], HERE, 120)
 
 
+def hunt_last(cell: str) -> str:
+    """Last hunt outcome kind for a cell from the demiurge ledger — the
+    stable re-derivation route for the hunt speaker."""
+    led = DEMIURGE / "ledger.jsonl"
+    last = "none"
+    if led.is_file():
+        for ln in led.read_text(encoding="utf-8-sig").splitlines():
+            if '"kind": "hunt' in ln and f'"{cell}"' in ln:
+                last = json.loads(ln).get("kind", "none")
+    return last
+
+
+def say_hunt(cell: str):
+    """Autonomic SPOOR speaker #2 (turn 35, closes turn-11's open item):
+    after a hunt cycle, the outcome becomes a spine FACT routed into the
+    demiurge ledger. Deduped on the claim — a repeat noemit is not news;
+    a transition (noemit -> certified/rejected) always is."""
+    outcome = hunt_last(cell)
+    claim = f"hunt {cell} latest outcome = {outcome}"
+    spine = HERE / "spine.jsonl"
+    if spine.is_file():
+        for ln in reversed(spine.read_text(encoding="utf-8").splitlines()):
+            if '"kind": "fact"' in ln and f"hunt {cell}" in ln:
+                if json.loads(ln)["body"]["claim"] == claim:
+                    return
+                break
+    run([PY, str(HERE / "station.py"), "say", claim,
+         "--cmd", f'"{PY}" "{HERE / "pulse.py"}" --hunt-last {cell}',
+         "--expect", outcome], HERE, 120)
+
+
 _sweep_probe = None                       # per-beat memo (turn 14): the
                                           # branch chain asks 3x; the answer
                                           # cannot legitimately change inside
@@ -235,6 +266,8 @@ def main():
                          HUNT_MODEL], DEMIURGE, timeout=3600)
         tail = out.strip().splitlines()[-1][:120] if out.strip() else ""
         beat["action"] = f"hunt-cycle({cell}) exit={code} | {tail}"
+        if not DRY:
+            say_hunt(cell)                # speaker #2: outcome -> spine fact
     elif not (DEMIURGE / "KILL").exists() and not sweep_already_running():
         # 5 — the compounding loop beats on its own
         code, out = run([PY, str(DEMIURGE / "autoloop.py"), "1", "5", "900"],
@@ -273,5 +306,8 @@ if __name__ == "__main__":
     if "--counts" in sys.argv:
         # the stable re-derivation route for the beat's autonomic fact
         print(json.dumps(scored_counts()))
+    elif "--hunt-last" in sys.argv:
+        # stable route for the hunt speaker's fact
+        print(hunt_last(sys.argv[sys.argv.index("--hunt-last") + 1]))
     else:
         main()
