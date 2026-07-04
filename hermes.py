@@ -48,12 +48,15 @@ MAX_DEPTH = 3
 
 MAP_SYS = ("You extract facts. Given a QUESTION and a text PIECE, output "
            "ONLY facts from the piece relevant to the question, one per "
-           "line, verbatim numbers/names/paths preserved. If nothing is "
-           "relevant output exactly: NOTHING")
+           "line, verbatim numbers/names/paths preserved. When the text "
+           "shows speakers/roles (user, assistant, log source), PREFIX each "
+           "fact with [who]. Never merge different speakers into one fact. "
+           "If nothing is relevant output exactly: NOTHING")
 REDUCE_SYS = ("You synthesize. Given a QUESTION and NOTES extracted from a "
               "large document, answer the question directly and concisely. "
-              "State plainly what the notes do not establish. Never invent "
-              "facts absent from the notes.")
+              "Keep [who] attributions — never ascribe one speaker's words "
+              "to another. State plainly what the notes do not establish. "
+              "Never invent facts absent from the notes.")
 
 
 def _read_any(path: Path) -> str:

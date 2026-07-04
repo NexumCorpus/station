@@ -42,7 +42,7 @@ DEMIURGE = Path("E:/demiurge")
 VERDICT = RUNS / "w2_verdict.txt"
 TIERS = ["T1", "T2", "T3", "T4"]
 TARGET_N = 8
-HUNT_CELL = "q2n14r2"
+HUNT_CELLS = ["q2n14r2", "q3n8r1", "q2n13r2", "q3n7r1", "q2n12r2", "q3n6r1"]
 HUNT_MODEL = "ollama:qwen2.5-coder:7b"    # free local proposer ONLY
 PY = sys.executable
 DRY = "--dry" in sys.argv
@@ -159,11 +159,13 @@ def main():
           and ollama_up()):
         # 4 — free-proposer record hunt: zero metered tokens, so it takes
         # priority over the metered demiurge cycle whenever the local model
-        # is up. Certification stays behind the same external gate.
-        code, out = run([PY, str(DEMIURGE / "hunt.py"), HUNT_CELL,
+        # is up. Certification stays behind the same external gate. Cells
+        # rotate by day-of-year so the whole record front gets attacked.
+        cell = HUNT_CELLS[int(time.strftime("%j")) % len(HUNT_CELLS)]
+        code, out = run([PY, str(DEMIURGE / "hunt.py"), cell,
                          HUNT_MODEL], DEMIURGE, timeout=3600)
         tail = out.strip().splitlines()[-1][:120] if out.strip() else ""
-        beat["action"] = f"hunt-cycle({HUNT_CELL}) exit={code} | {tail}"
+        beat["action"] = f"hunt-cycle({cell}) exit={code} | {tail}"
     elif not (DEMIURGE / "KILL").exists() and not sweep_already_running():
         # 5 — the compounding loop beats on its own
         code, out = run([PY, str(DEMIURGE / "autoloop.py"), "1", "5", "900"],
