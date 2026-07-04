@@ -20,6 +20,8 @@ Commands:
   station log <name> [--tail N | --full]   cursor-aware log read (default: new bytes only)
   station note <text...>    append a telegraph event to the spine
   station spine [N]         last N spine events (default 10)
+  station will [intent|done]  testament: intent-at-death, rewritten at every
+                            move boundary (interrupts are not graceful)
   station regs              show the registry (repos, suites, logs)
 """
 from __future__ import annotations
@@ -41,6 +43,7 @@ HERE = Path(__file__).resolve().parent
 REG = HERE / "station.json"
 SPINE = HERE / "spine.jsonl"
 CURSORS = HERE / "cursors"
+WILL = HERE / "WILL.md"
 SUITE_TIMEOUT_S = 900
 
 
@@ -181,6 +184,13 @@ def cmd_wake():
                      + (events[-1] if events else "-"))
     else:
         lines.append("spine empty")
+    if WILL.is_file():
+        age_m = int((time.time() - WILL.stat().st_mtime) / 60)
+        intent = next((ln for ln in WILL.read_text(encoding="utf-8")
+                       .splitlines() if ln.strip()
+                       and not ln.startswith("#")), "")[:140]
+        lines.append(f"WILL age={age_m}m (author died mid-move — verify vs "
+                     f"dirt+spine) | {intent}")
     print("\n".join(lines))
     _spine_append("wake", {"repos": len(reg.get("repos", {}))})
 
@@ -469,6 +479,43 @@ def cmd_handoff(next_actions: str = ""):
           "log-recoverable? then /clear is LOSSLESS.")
 
 
+# ---------------------------------------------------------------- will ------
+def cmd_will(text: str = ""):
+    """The testament — intent AT DEATH, rewritten at every move boundary.
+
+    handoff is the graceful-molt artifact; this is for the other kind of
+    death: the interrupt that lands mid-move. (2026-07-04: reconstructing
+    one such death cost ~10 calls of transcript archaeology; a fresh will
+    is 1 read.) An organism that can die between any two keystrokes keeps
+    its testament current, not occasional.
+
+      station will <intent>   before starting any multi-step move
+      station will done       when the estate is consistent again
+      station will            read the current testament
+
+    Wake surfaces the will with its age. It is INTENT, not record — the
+    reader verifies it against repo dirt + spine before trusting it."""
+    if text.strip().lower() == "done":
+        existed = WILL.is_file()
+        if existed:
+            WILL.unlink()
+        print("[will] cleared" + ("" if existed else " (was already clear)")
+              + " — estate consistent, nothing in flight")
+        return
+    if not text.strip():
+        if WILL.is_file():
+            print(WILL.read_text(encoding="utf-8"))
+        else:
+            print("[will] none on file (author left the estate consistent)")
+        return
+    WILL.write_text(
+        f"{text}\n\n"
+        f"# WILL written {_now()} — intent-at-death, not record.\n"
+        f"# Verify against repo dirt + spine tail before trusting.\n",
+        encoding="utf-8")
+    print(f"[will] recorded ({len(text)} chars) — clear with: station will done")
+
+
 # --------------------------------------------------------------- quota ------
 def cmd_quota(hours: float = 5.0):
     """ESTIMATED subscription burn: sums token usage from session transcripts
@@ -625,6 +672,8 @@ def main():
         cmd_quota(float(args[1]) if len(args) > 1 else 5.0)
     elif cmd == "handoff":
         cmd_handoff(" ".join(args[1:]))
+    elif cmd == "will":
+        cmd_will(" ".join(args[1:]))
     elif cmd == "cure":
         cmd_cure(" ".join(args[1:]))
     elif cmd == "pin":
