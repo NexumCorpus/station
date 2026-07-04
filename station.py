@@ -859,11 +859,17 @@ def cmd_note(text: str):
     print(f"noted @{_now()}")
 
 
-def cmd_spine(n: int = 10):
+def cmd_spine(n: int = 10, match: str = ""):
+    """Last n events; with match, last n events CONTAINING it (spiral turn
+    4: unfiltered tails drowned a PULSE note among newer chatter -> false
+    flatline diagnosis + 3-call debug, 2026-07-04)."""
     if not SPINE.is_file():
         print("spine empty")
         return
-    for ln in SPINE.read_text(encoding="utf-8").splitlines()[-n:]:
+    lines = SPINE.read_text(encoding="utf-8").splitlines()
+    if match:
+        lines = [ln for ln in lines if match.lower() in ln.lower()]
+    for ln in lines[-n:]:
         print(ln)
 
 
@@ -937,7 +943,8 @@ def main():
     elif cmd == "note":
         cmd_note(" ".join(args[1:]))
     elif cmd == "spine":
-        cmd_spine(int(args[1]) if len(args) > 1 else 10)
+        cmd_spine(int(args[1]) if len(args) > 1 else 10,
+                  args[2] if len(args) > 2 else "")
     elif cmd == "regs":
         cmd_regs()
     else:
