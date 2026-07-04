@@ -120,6 +120,28 @@ def ollama_up() -> bool:
     return "models" in out
 
 
+def say_counts(counts: dict):
+    """Autonomic SPOOR (Law I — work migrates downward): the beat utters its
+    wave counts as a spine FACT. The route re-executes at write, so a wrong
+    count lands as 'refuted', never as fact; a mid-utterance world-move
+    (sweep scoring during the say) is an honest refutation, not an error.
+    Skips when unchanged since last said — facts are news, not heartbeat
+    filler. This closes spiral turn 10's adoption risk structurally: the
+    handoff's standing-facts block is fed by trusted code, not by an agent
+    remembering a reflex."""
+    claim = f"wave-2 scored slots {json.dumps(counts)}"
+    spine = HERE / "spine.jsonl"
+    if spine.is_file():
+        for ln in reversed(spine.read_text(encoding="utf-8").splitlines()):
+            if '"kind": "fact"' in ln and 'wave-2 scored slots' in ln:
+                if json.loads(ln)["body"]["claim"] == claim:
+                    return                    # unchanged — say nothing
+                break
+    run([PY, str(HERE / "station.py"), "say", claim,
+         "--cmd", f'"{PY}" "{HERE / "pulse.py"}" --counts',
+         "--expect", json.dumps(counts)], HERE, 120)
+
+
 def sweep_already_running() -> bool:
     code, out = run(["powershell", "-NoProfile", "-Command",
                      "(Get-CimInstance Win32_Process -Filter \"Name like "
@@ -146,6 +168,7 @@ def main():
         return
 
     counts = scored_counts()
+    say_counts(counts)
     incomplete = {t: n for t, n in counts.items() if n < TARGET_N}
 
     if incomplete and not sweep_already_running():
@@ -222,4 +245,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "--counts" in sys.argv:
+        # the stable re-derivation route for the beat's autonomic fact
+        print(json.dumps(scored_counts()))
+    else:
+        main()

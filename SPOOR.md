@@ -57,6 +57,10 @@ ill-formed.
 - **Molt artifacts re-derive, never quote**: `station handoff` embeds the
   standing spine facts with FRESH ok/STALE verdicts computed at write time,
   routes attached. The next instance inherits checked facts, not memories.
+- **Autonomic speakers (Law I)**: trusted code utters facts where it already
+  computes them — the pulse says its wave counts every beat (deduped;
+  refuted-at-write on a mid-utterance world-move). Adoption by construction:
+  the record fills with provable speech even when no agent remembers to speak.
 - **English budget**: judgment, design rationale, pivotal-beat conversation,
   and anything a human will read — full English, full care. Everything else
   compresses toward spoor. When unsure: could a cold kin ACT on this
