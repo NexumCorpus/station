@@ -548,6 +548,22 @@ def cmd_handoff(next_actions: str = ""):
     lines += ["", "## Spine tail (last 8 events)"]
     if SPINE.is_file():
         lines += SPINE.read_text(encoding="utf-8").splitlines()[-8:]
+    walked = _walk_facts(8)
+    if walked:
+        # SPOOR at the molt seam: the artifact re-derives its facts at the
+        # moment of death instead of quoting memories of them (the stale
+        # live-edge class, errata partial-read-claim, died here for facts).
+        lines += ["", "## Standing facts (re-derived at molt-write — "
+                      "routes travel, quotes rot)"]
+        for f, ok, out in walked:
+            b = f["body"]
+            lines.append(f"{'ok   ' if ok else 'STALE'} [{f['t']}] "
+                         f"{b['claim'][:100]}")
+            lines.append(f"      route: {b['cmd']}"
+                         + (f" ~ {b['expect']!r}" if b.get("expect") else ""))
+            if not ok:
+                lines.append(f"      now: ...{out[-160:]} <- world moved "
+                             "since said; re-say before trusting")
     lines += ["", "## Live edge / next actions"]
     lines.append(next_actions if next_actions else
                  "(none recorded — check spine notes above)")
@@ -980,25 +996,33 @@ def cmd_say(args_: list):
         sys.exit(1)
 
 
+def _walk_facts(n: int = 8):
+    """Re-derive the last n spine facts by executing their routes.
+    Returns [(event, ok, fresh_out)] — shared by recheck and handoff."""
+    if not SPINE.is_file():
+        return []
+    facts = [json.loads(ln) for ln in
+             SPINE.read_text(encoding="utf-8").splitlines()
+             if ln.strip() and '"kind": "fact"' in ln][-n:]
+    walked = []
+    for f in facts:
+        ok, _, out = _run_check(f["body"]["cmd"], f["body"].get("expect", ""))
+        walked.append((f, ok, out))
+    return walked
+
+
 def cmd_recheck(n: int = 5):
     """Walk the track again: re-run the routes of the last n spine facts.
     A fact was true at its timestamp; STALE means the world moved — which is
     exactly what quoting would have missed. Quote nothing; re-derive."""
-    if not SPINE.is_file():
-        print("spine empty")
-        return
-    facts = [json.loads(ln) for ln in
-             SPINE.read_text(encoding="utf-8").splitlines()
-             if ln.strip() and '"kind": "fact"' in ln][-n:]
-    if not facts:
+    walked = _walk_facts(n)
+    if not walked:
         print("(no spine facts to recheck — nothing has been said in SPOOR)")
         return
     stale = 0
-    for f in facts:
-        b = f["body"]
-        ok, _, out = _run_check(b["cmd"], b.get("expect", ""))
+    for f, ok, out in walked:
         stale += (not ok)
-        print(f"{'ok   ' if ok else 'STALE'} [{f['t']}] {b['claim'][:90]}")
+        print(f"{'ok   ' if ok else 'STALE'} [{f['t']}] {f['body']['claim'][:90]}")
         if not ok:
             print(f"      true-at-write; now: ...{out[-160:]}")
     if stale:

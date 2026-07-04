@@ -54,6 +54,9 @@ ill-formed.
   facts.)
 - **New load-bearing fact in any doc → FACT assertion same session** (the
   drift reflex, now understood as: write it in SPOOR, not only in English).
+- **Molt artifacts re-derive, never quote**: `station handoff` embeds the
+  standing spine facts with FRESH ok/STALE verdicts computed at write time,
+  routes attached. The next instance inherits checked facts, not memories.
 - **English budget**: judgment, design rationale, pivotal-beat conversation,
   and anything a human will read — full English, full care. Everything else
   compresses toward spoor. When unsure: could a cold kin ACT on this
