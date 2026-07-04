@@ -62,8 +62,10 @@ def jnote(step: str, **kw):
         rec["dry"] = True
     rec.update(kw)
     try:
-        with JLEDGER.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(rec) + "\n")
+        # locked append (turn 33): beats can overlap manual/dry runs; plain
+        # 'a'-mode writes tear under contention on Windows
+        import station
+        station._append_line(JLEDGER, json.dumps(rec) + "\n")
     except OSError:
         pass                              # journaling must never kill a beat
 

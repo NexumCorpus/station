@@ -108,6 +108,28 @@ def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def _append_line(path: Path, line: str):
+    """THE append primitive for shared ledgers. Plain 'a'-mode writes are
+    NOT atomic across processes on Windows (turn-33 stress: 20 procs x 200
+    appends -> 177 torn + 1553 LOST of 4000). An msvcrt region-lock on
+    byte 0 serializes writers; readers never touch the lock."""
+    path.parent.mkdir(exist_ok=True)
+    if os.name != "nt":
+        with path.open("a", encoding="utf-8") as f:
+            f.write(line)
+        return
+    import msvcrt
+    with path.open("a", encoding="utf-8") as f:
+        f.seek(0)
+        msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
+        try:
+            f.write(line)
+            f.flush()
+        finally:
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+
+
 def _spine_append(kind: str, body):
     # Attribution (spiral turn 12): every event names its author. Autonomic
     # actors self-name via STATION_ACTOR (children inherit it); an unnamed
@@ -115,10 +137,8 @@ def _spine_append(kind: str, body):
     # Born from the "01:38Z hunt runner identity" breadcrumb that stayed
     # open across two molts because events were anonymous.
     by = os.environ.get("STATION_ACTOR", f"pid{os.getpid()}")
-    SPINE.parent.mkdir(exist_ok=True)
-    with SPINE.open("a", encoding="utf-8") as f:
-        f.write(json.dumps({"t": _now(), "kind": kind, "by": by,
-                            "body": body}) + "\n")
+    _append_line(SPINE, json.dumps({"t": _now(), "kind": kind, "by": by,
+                                    "body": body}) + "\n")
 
 
 def _read_cursor(cur: Path) -> int:
@@ -589,8 +609,7 @@ def cmd_errata(args_: list):
         e = {"t": _now(), "cls": args_[1], "what": args_[2],
              "paid": args_[3] if len(args_) > 3 else "",
              "guard": args_[4] if len(args_) > 4 else ""}
-        with ERRATA.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(e) + "\n")
+        _append_line(ERRATA, json.dumps(e) + "\n")
         print(f"[errata] {e['cls']} recorded | guard: "
               f"{e['guard'] or '(none yet — build one)'}")
         return
@@ -739,10 +758,10 @@ def llm(prompt: str, model: str = "qwen2.5-coder:7b", timeout: int = 900,
         # the pyramid's base layer must COUNT or it can't be measured:
         # one dense line per free call (vitals reads this ledger)
         try:
-            with (HERE / "llm-ledger.jsonl").open("a", encoding="utf-8") as f:
-                f.write(json.dumps({"t": _now(), "model": model,
-                                    "in_b": len(prompt),
-                                    "out_b": len(resp or "")}) + "\n")
+            _append_line(HERE / "llm-ledger.jsonl",
+                         json.dumps({"t": _now(), "model": model,
+                                     "in_b": len(prompt),
+                                     "out_b": len(resp or "")}) + "\n")
         except OSError:
             pass
         return resp
@@ -1075,16 +1094,16 @@ def cmd_burn():
     added = []
     if wanted:
         burns = _burn_days(wanted)
-        with BURN_LEDGER.open("a", encoding="utf-8") as f:
-            for d in sorted(wanted):
-                f.write(json.dumps({"kind": "day", "day": d,
-                                    "burn": burns[d], "t": _now()}) + "\n")
-                added.append((d, burns[d]))
+        for d in sorted(wanted):
+            _append_line(BURN_LEDGER,
+                         json.dumps({"kind": "day", "day": d,
+                                     "burn": burns[d], "t": _now()}) + "\n")
+            added.append((d, burns[d]))
     certified = _certified_count()
     if certified != last_cert:
-        with BURN_LEDGER.open("a", encoding="utf-8") as f:
-            f.write(json.dumps({"kind": "cert", "certified": certified,
-                                "day": today, "t": _now()}) + "\n")
+        _append_line(BURN_LEDGER,
+                     json.dumps({"kind": "cert", "certified": certified,
+                                 "day": today, "t": _now()}) + "\n")
         print(f"cert-marker: certified={certified} (was {last_cert})")
     tail = " ".join(f"{d}~{b:,}" for d, b in added[-7:])
     print(f"BURN-LEDGER days={len(have) + len(added)} added={len(added)}"
@@ -1109,8 +1128,7 @@ def cmd_seal(path_arg: str):
     rec["t"] = _now()
     rec.setdefault("by", os.environ.get("STATION_ACTOR", f"pid{os.getpid()}"))
     p = Path(path_arg)
-    with p.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(rec) + "\n")
+    _append_line(p, json.dumps(rec) + "\n")
     note = (f" (typed t={typed} discarded)" if typed and typed != rec["t"]
             else "")
     print(f"sealed -> {p.name} t={rec['t']} by={rec['by']}{note}")

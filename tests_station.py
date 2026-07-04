@@ -168,6 +168,28 @@ class StationTests(unittest.TestCase):
         self.assertEqual(r["x"], 1)                           # payload intact
         self.assertIn("by", r)                                # attributed
 
+    def test_concurrent_spine_appends_never_tear(self):
+        # turn-33 stress at full scale: plain 'a'-mode lost 1553/4000 and
+        # tore 177. This is the scaled invariant guard (5 procs x 50).
+        import subprocess
+        wf = self.tmp / "w.py"
+        wf.write_text(
+            "import sys; sys.path.insert(0, r'E:\\station')\n"
+            "import station\nfrom pathlib import Path\n"
+            "station.SPINE = Path(sys.argv[1])\n"
+            "for i in range(50):\n"
+            "    station._spine_append('stress', {'w': int(sys.argv[2]), 'i': i})\n",
+            encoding="utf-8")
+        procs = [subprocess.Popen([sys.executable, str(wf),
+                                   str(station.SPINE), str(w)])
+                 for w in range(5)]
+        for p in procs:
+            p.wait()
+        seen = set()
+        for ev in self._spine_events():          # raises on any torn line
+            seen.add((ev["body"]["w"], ev["body"]["i"]))
+        self.assertEqual(len(seen), 250)         # nothing lost
+
     def test_errata_add_appends_classed_entry(self):
         station.cmd_errata(["add", "test-class", "what happened",
                            "the cost", "the guard"])
