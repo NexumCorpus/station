@@ -154,6 +154,9 @@ def sweep_already_running() -> bool:
 
 
 def main():
+    # self-name for spine attribution; every child (sweep, hunt, digest,
+    # station calls) inherits it — anonymous estate events end here
+    os.environ["STATION_ACTOR"] = f"pulse-beat-{BEAT_ID}"
     beat = {"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     jnote("beat-start")
 

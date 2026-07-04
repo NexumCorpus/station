@@ -75,9 +75,16 @@ def _now() -> str:
 
 
 def _spine_append(kind: str, body):
+    # Attribution (spiral turn 12): every event names its author. Autonomic
+    # actors self-name via STATION_ACTOR (children inherit it); an unnamed
+    # writer degrades to its pid — enough to join against the pulse-ledger.
+    # Born from the "01:38Z hunt runner identity" breadcrumb that stayed
+    # open across two molts because events were anonymous.
+    by = os.environ.get("STATION_ACTOR", f"pid{os.getpid()}")
     SPINE.parent.mkdir(exist_ok=True)
     with SPINE.open("a", encoding="utf-8") as f:
-        f.write(json.dumps({"t": _now(), "kind": kind, "body": body}) + "\n")
+        f.write(json.dumps({"t": _now(), "kind": kind, "by": by,
+                            "body": body}) + "\n")
 
 
 def _read_cursor(cur: Path) -> int:
