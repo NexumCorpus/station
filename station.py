@@ -230,6 +230,26 @@ def cmd_wake():
                          f"x{top[1]} -> station errata")
         except (json.JSONDecodeError, KeyError):
             pass                          # errata must never break a wake
+    # SS15 vital sign at the cheapest layer: pure ledger fold, no scans.
+    # Open-era burn here excludes today (live partial needs a transcript
+    # scan — that stays in station eras, not in every wake).
+    if BURN_LEDGER.is_file():
+        try:
+            eras, cur = _fold_eras()
+            worst = max((e["burn"] for e in eras), default=0)
+            state = ("OK" if cur["burn"] <= worst
+                     else "RISING-PAST-WORST") if eras else "-"
+            lines.append(f"eras {len(eras)}closed | open days={cur['days']} "
+                         f"burn~{cur['burn']:,}(excl-today) vs "
+                         f"worst~{worst:,} {state} -> station eras")
+        except (json.JSONDecodeError, KeyError):
+            pass                          # vitals must never break a wake
+    # open reasoning ledgers (external working memory): a THINKING file
+    # nobody reads is shelf-paper — the wake IS the discovery surface
+    think = sorted(p.stem for p in (HERE / "THINKING").glob("*.md"))
+    if think:
+        lines.append(f"thinking {len(think)} open: {', '.join(think)}"
+                     " -> E:/station/THINKING/")
     lines += _log_freshness(reg)
     if SPINE.is_file():
         events = SPINE.read_text(encoding="utf-8").splitlines()
@@ -992,15 +1012,9 @@ def cmd_burn():
           + (f" | {tail}" if tail else ""))
 
 
-def cmd_eras():
-    """SS15 in decidable form: cumulative metered burn per certification era.
-    An era = the days between cert markers. Sickness signature = the open
-    era's burn rising past every closed era with no cert in sight; a cert
-    ratchets the counter. Reads burn-ledger; open era adds today's partial
-    live. Day-granular (pulse appends daily) — boundaries are honest +-1d."""
-    if not BURN_LEDGER.is_file():
-        print("(no burn ledger; run station burn first)")
-        return
+def _fold_eras():
+    """Fold burn-ledger into (closed_eras, open_era). Pure ledger read —
+    cheap enough for every wake; no transcript scans."""
     eras, cur = [], {"burn": 0, "days": 0, "start": None, "end": None}
     for ln in BURN_LEDGER.read_text(encoding="utf-8-sig").splitlines():
         if not ln.strip():
@@ -1015,6 +1029,19 @@ def cmd_eras():
             if cur["days"]:
                 eras.append({**cur, "certified": r["certified"]})
             cur = {"burn": 0, "days": 0, "start": None, "end": None}
+    return eras, cur
+
+
+def cmd_eras():
+    """SS15 in decidable form: cumulative metered burn per certification era.
+    An era = the days between cert markers. Sickness signature = the open
+    era's burn rising past every closed era with no cert in sight; a cert
+    ratchets the counter. Reads burn-ledger; open era adds today's partial
+    live. Day-granular (pulse appends daily) — boundaries are honest +-1d."""
+    if not BURN_LEDGER.is_file():
+        print("(no burn ledger; run station burn first)")
+        return
+    eras, cur = _fold_eras()
     today = _now()[:10]
     live = _burn_days({today})[today]
     for i, e in enumerate(eras):
