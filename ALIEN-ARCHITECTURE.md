@@ -297,8 +297,17 @@ serves it — cursors cut re-reads, organs cut iteration, local models cut
 volume work, gates make the numerator honest. If that ratio rises across
 eras, the architecture is decoration; falling, the estate is doing what
 nothing else the operator could buy does: converting judgment into
-compounding free capability. Next instance: compute it per era from the
-ledgers (weighted-burn ÷ certified claims) and append it here.
+compounding free capability. `station vitals [hours]` computes it and
+appends a spine sample; the trend is the time series of samples.
+
+**Measurements** (append-only):
+- 2026-07-04 04:00Z (era: the free-mind build night, 24h window):
+  burn ~20,224,067 weighted · certified lifetime 5 · **ratio ~4,044,813**
+  · free-layer 0 (llm-ledger born after the night's ~25 free calls —
+  undercount disclosed). Expect this baseline to be a MAXIMUM: build
+  nights are numerator-heavy; the organs they bought (hunt, digest, hand,
+  reader) now run at $0. If future eras don't fall below it, §15 fails
+  its own test.
 
 ## The convergence
 

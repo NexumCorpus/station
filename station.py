@@ -516,7 +516,17 @@ def llm(prompt: str, model: str = "qwen2.5-coder:7b", timeout: int = 900,
              "http://localhost:11434/api/generate", "-d", "@-"],
             input=body, capture_output=True, text=True, encoding="utf-8",
             errors="replace", timeout=timeout)
-        return json.loads(r.stdout).get("response")
+        resp = json.loads(r.stdout).get("response")
+        # the pyramid's base layer must COUNT or it can't be measured:
+        # one dense line per free call (vitals reads this ledger)
+        try:
+            with (HERE / "llm-ledger.jsonl").open("a", encoding="utf-8") as f:
+                f.write(json.dumps({"t": _now(), "model": model,
+                                    "in_b": len(prompt),
+                                    "out_b": len(resp or "")}) + "\n")
+        except OSError:
+            pass
+        return resp
     except (subprocess.TimeoutExpired, subprocess.SubprocessError,
             json.JSONDecodeError, OSError):
         return None
@@ -699,6 +709,58 @@ def cmd_quota(hours: float = 5.0):
           f"{len(limit_hits)}")
 
 
+# -------------------------------------------------------------- vitals ------
+def cmd_vitals(hours: float = 24.0):
+    """THE vital sign (ALIEN-ARCHITECTURE.md §15): metered tokens per
+    certified claim, trending down = the estate converts judgment into
+    compounding free capability. Each run appends a sample to the spine —
+    the trend IS the time series of these samples. Components printed so
+    the ratio can't hide: window weighted-burn, lifetime certified claims,
+    free-layer volume (llm-ledger) in the same window."""
+    # metered burn (reuse quota scan, silenced)
+    import io
+    from contextlib import redirect_stdout
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        cmd_quota(hours)
+    burn = 0
+    for ln in buf.getvalue().splitlines():
+        if "weighted-burn" in ln:
+            burn = int(ln.split("~")[1].split()[0].replace(",", ""))
+    # certified claims (lifetime, from the atlas ledger — the denominator
+    # is deliberately lifetime: certified capability never expires)
+    claims_path = _registry().get("claims", "")
+    certified = 0
+    if claims_path and Path(claims_path).is_file():
+        d = json.loads(Path(claims_path).read_text(encoding="utf-8-sig"))
+        arr = d if isinstance(d, list) else d.get("claims", [])
+        certified = sum(1 for c in arr if c.get("verified") is True)
+    # free-layer volume in window
+    cutoff = time.time() - hours * 3600
+    free_calls = free_out = 0
+    led = HERE / "llm-ledger.jsonl"
+    if led.is_file():
+        for ln in led.read_text(encoding="utf-8").splitlines():
+            try:
+                r = json.loads(ln)
+                t = time.mktime(time.strptime(r["t"][:19],
+                                              "%Y-%m-%dT%H:%M:%S"))
+                t -= time.timezone if not time.daylight else time.altzone
+                if t >= cutoff:
+                    free_calls += 1
+                    free_out += r.get("out_b", 0)
+            except (ValueError, KeyError, json.JSONDecodeError):
+                continue
+    ratio = burn // certified if certified else burn
+    print(f"VITALS window={hours:g}h | metered-burn ~{burn:,} | certified "
+          f"lifetime={certified} | RATIO burn/claim ~{ratio:,} | free-layer "
+          f"calls={free_calls} out={free_out:,}B (cost $0)")
+    print("trend: compare across spine 'vitals' samples — DOWN = alive")
+    _spine_append("vitals", {"h": hours, "burn": burn,
+                             "certified": certified, "ratio": ratio,
+                             "free_calls": free_calls})
+
+
 # ----------------------------------------------------------------- map ------
 def cmd_map(path: str):
     """AST outline of a python file: one line per def/class with its line
@@ -790,6 +852,8 @@ def main():
         cmd_map(args[1])
     elif cmd == "quota":
         cmd_quota(float(args[1]) if len(args) > 1 else 5.0)
+    elif cmd == "vitals":
+        cmd_vitals(float(args[1]) if len(args) > 1 else 24.0)
     elif cmd == "handoff":
         cmd_handoff(" ".join(args[1:]))
     elif cmd == "will":
