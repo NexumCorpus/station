@@ -74,9 +74,17 @@ def scored_counts() -> dict:
 
 
 def ollama_up() -> bool:
-    code, out = run(["wsl", "-d", "Ubuntu", "--", "bash", "-lc",
-                     "curl -s --max-time 8 http://localhost:11434/api/tags"],
-                    HERE, 30)
+    """Self-healing: WSL has no systemd, so a nohup'd `ollama serve` dies when
+    the distro idles down between beats. If the API is unreachable, start it
+    (as root, per grimoire #23) and re-probe once. Zero metered tokens either
+    way — this only gates the FREE hunt branch."""
+    probe = ("curl -s --max-time 8 http://localhost:11434/api/tags")
+    code, out = run(["wsl", "-d", "Ubuntu", "--", "bash", "-lc", probe], HERE, 30)
+    if "models" in out:
+        return True
+    run(["wsl", "-d", "Ubuntu", "-u", "root", "--", "bash", "-lc",
+         "nohup ollama serve >/tmp/ollama.log 2>&1 & sleep 6"], HERE, 40)
+    code, out = run(["wsl", "-d", "Ubuntu", "--", "bash", "-lc", probe], HERE, 30)
     return "models" in out
 
 
