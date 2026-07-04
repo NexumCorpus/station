@@ -226,11 +226,16 @@ def _claims_line(claims_path: str) -> str:
             return "CERTIFIED"
         return "REJECTED" if "rejection" in c else "PENDING"
 
-    cert = sum(1 for c in claims if state(c) == "CERTIFIED")
-    rej = sum(1 for c in claims if state(c) == "REJECTED")
-    pend = sum(1 for c in claims if state(c) == "PENDING")
+    # count DISTINCT capabilities per state (turn 46): a claim re-certified
+    # with fresh holdout seeds is one capability, not two. dup= surfaces the
+    # gap so the re-certification is visible, not hidden.
+    cert = len({c.get("id") for c in claims if state(c) == "CERTIFIED"})
+    rej = len({c.get("id") for c in claims if state(c) == "REJECTED"})
+    pend = len({c.get("id") for c in claims if state(c) == "PENDING"})
+    dup = len(claims) - len({c.get("id") for c in claims})
+    tag = f" ({dup}re-cert)" if dup else ""
     last = claims[-1] if claims else {}
-    return (f"claims {cert}certified {rej}rejected {pend}pending | last: "
+    return (f"claims {cert}certified {rej}rejected {pend}pending{tag} | last: "
             f"{last.get('id', '?')} {state(last) if claims else '-'}")
 
 
@@ -1239,13 +1244,18 @@ BURN_LEDGER = HERE / "burn-ledger.jsonl"
 
 
 def _certified_count() -> int:
-    """Lifetime certified claims from the registered claims ledger."""
+    """Lifetime certified claims — DISTINCT verified ids (turn 46). The
+    ledger may hold the same claim certified twice (e.g. re-run with fresh
+    holdout seeds: stronger evidence, not a second capability). §15's ratio
+    is only honest if its denominator counts capabilities, not rows —
+    deduping makes the number worse and true, which is the whole point of
+    a self-correcting record."""
     claims_path = _registry().get("claims", "")
     if not (claims_path and Path(claims_path).is_file()):
         return 0
     d = json.loads(Path(claims_path).read_text(encoding="utf-8-sig"))
     arr = d if isinstance(d, list) else d.get("claims", [])
-    return sum(1 for c in arr if c.get("verified") is True)
+    return len({c.get("id") for c in arr if c.get("verified") is True})
 
 
 def _weighted(u: dict) -> int:
