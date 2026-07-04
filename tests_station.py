@@ -199,5 +199,52 @@ class StationTests(unittest.TestCase):
         self.assertEqual(e["guard"], "the guard")
 
 
+class PulseSpeakerTests(unittest.TestCase):
+    """The autonomic speakers (turns 11 + 35): wrong dedupe = spine spam
+    or silenced transitions; both corrupt the record's signal."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        import pulse
+        self.pulse = pulse
+        self._here, self._demi = pulse.HERE, pulse.DEMIURGE
+        self._run = pulse.run
+        pulse.HERE = self.tmp                    # spine read path
+        pulse.DEMIURGE = self.tmp                # hunt ledger path
+        self.calls = []
+        pulse.run = lambda cmd, cwd, timeout: (self.calls.append(cmd)
+                                               or (0, ""))
+
+    def tearDown(self):
+        self.pulse.HERE, self.pulse.DEMIURGE = self._here, self._demi
+        self.pulse.run = self._run
+
+    def _ledger(self, *kinds):
+        with (self.tmp / "ledger.jsonl").open("a", encoding="utf-8") as f:
+            for k in kinds:
+                f.write(json.dumps({"t": "x", "kind": k,
+                                    "cell": "q9n9r9"}) + "\n")
+
+    def test_hunt_last_returns_latest_kind(self):
+        self._ledger("hunt-noemit", "hunt-attempt", "hunt-certified")
+        self.assertEqual(self.pulse.hunt_last("q9n9r9"), "hunt-certified")
+        self.assertEqual(self.pulse.hunt_last("absent-cell"), "none")
+
+    def test_say_hunt_speaks_transitions_dedupes_repeats(self):
+        self._ledger("hunt-noemit")
+        self.pulse.say_hunt("q9n9r9")            # first outcome: speaks
+        self.assertEqual(len(self.calls), 1)
+        # simulate the fact landing in the spine, then an unchanged rerun
+        (self.tmp / "spine.jsonl").write_text(json.dumps(
+            {"kind": "fact", "body":
+             {"claim": "hunt q9n9r9 latest outcome = hunt-noemit"}}) + "\n",
+            encoding="utf-8")
+        self.pulse.say_hunt("q9n9r9")            # repeat: silent
+        self.assertEqual(len(self.calls), 1)
+        self._ledger("hunt-certified")           # transition: speaks again
+        self.pulse.say_hunt("q9n9r9")
+        self.assertEqual(len(self.calls), 2)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)
