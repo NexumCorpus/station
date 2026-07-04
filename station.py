@@ -479,6 +479,50 @@ def cmd_handoff(next_actions: str = ""):
           "log-recoverable? then /clear is LOSSLESS.")
 
 
+# ----------------------------------------------------------------- llm ------
+def llm(prompt: str, model: str = "qwen2.5-coder:7b", timeout: int = 900,
+        system: str = "", num_ctx: int = 8192, temperature: float = 0.2):
+    """The free mind: one call against the local WSL ollama server.
+    Returns response text, or None if the server is down/errored — callers
+    MUST treat None as 'free tier unavailable', never as an empty answer.
+    This is the estate's only local-inference path; hunt/pulse/organs call
+    this instead of hand-rolling wsl+curl (three copies existed by the time
+    it was extracted)."""
+    body = json.dumps({
+        "model": model, "prompt": prompt, "system": system, "stream": False,
+        "options": {"temperature": temperature, "num_ctx": num_ctx},
+    })
+    try:
+        r = subprocess.run(
+            ["wsl", "-d", "Ubuntu", "--", "curl", "-s",
+             "--max-time", str(timeout - 10),
+             "http://localhost:11434/api/generate", "-d", "@-"],
+            input=body, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=timeout)
+        return json.loads(r.stdout).get("response")
+    except (subprocess.TimeoutExpired, subprocess.SubprocessError,
+            json.JSONDecodeError, OSError):
+        return None
+
+
+def llm_up() -> bool:
+    try:
+        r = subprocess.run(["wsl", "-d", "Ubuntu", "--", "curl", "-s",
+                            "--max-time", "8",
+                            "http://localhost:11434/api/tags"],
+                           capture_output=True, text=True, timeout=30)
+        return "models" in (r.stdout or "")
+    except (subprocess.SubprocessError, OSError):
+        return False
+
+
+def cmd_llm(model: str, prompt: str):
+    if prompt == "-":
+        prompt = sys.stdin.read()
+    out = llm(prompt, model=model)
+    print(out if out is not None else "[llm] DOWN or errored (not an answer)")
+
+
 # ---------------------------------------------------------------- will ------
 def cmd_will(text: str = ""):
     """The testament — intent AT DEATH, rewritten at every move boundary.
@@ -674,6 +718,14 @@ def main():
         cmd_handoff(" ".join(args[1:]))
     elif cmd == "will":
         cmd_will(" ".join(args[1:]))
+    elif cmd == "llm":
+        if len(args) < 2:
+            print('usage: station llm [model] "<prompt>"|-   (- = stdin)')
+            sys.exit(1)
+        if len(args) == 2:
+            cmd_llm("qwen2.5-coder:7b", args[1])
+        else:
+            cmd_llm(args[1], " ".join(args[2:]))
     elif cmd == "cure":
         cmd_cure(" ".join(args[1:]))
     elif cmd == "pin":
