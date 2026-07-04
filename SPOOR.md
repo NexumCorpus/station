@@ -20,7 +20,7 @@ ill-formed.
 | type | shape | route to truth | lives as |
 |---|---|---|---|
 | CLAIM | {id, statement, check[], claimed_seeds} | execute check at seeds + unseen holdouts | claim bundles / atlas gate |
-| FACT | {claim, cmd, expect} | run cmd, match expect | drift.jsonl assertions |
+| FACT | {claim, cmd, expect} | run cmd, match expect | drift.jsonl assertions (invariants) · spine `fact`/`refuted` events via `station say` (point-in-time; checker = write-time execution + `station recheck`) |
 | CURE | {sig, cure, paid} | the receipt names where it was paid | grimoire.jsonl |
 | EVENT | {t, kind, body} | append-only + witnessed prefix hashes | spine, ledgers |
 | VERDICT | PASS/FAIL/VOID + receipt-pointer | re-run the pointed procedure | suite lines, gate output |

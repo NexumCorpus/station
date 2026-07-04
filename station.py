@@ -18,7 +18,12 @@ Commands:
   station wake              dense estate digest (repos, claims, procs, spine)
   station suites [name]     run registered verification suites -> verdict lines
   station log <name> [--tail N | --full]   cursor-aware log read (default: new bytes only)
-  station note <text...>    append a telegraph event to the spine
+  station note <text...>    append a telegraph event to the spine (narrative)
+  station say "<claim>" --cmd "<c>" [--expect "<f>"]   provable speech: the
+                            claim's re-derivation route runs AT WRITE; a
+                            failing claim lands as 'refuted', never as fact
+  station recheck [N]       re-run the last N spine facts' routes (quote
+                            nothing; re-derive)
   station spine [N]         last N spine events (default 10)
   station will [intent|done]  testament: intent-at-death, rewritten at every
                             move boundary (interrupts are not graceful)
@@ -922,6 +927,84 @@ def cmd_note(text: str):
     print(f"noted @{_now()}")
 
 
+# ---------------------------------------------------- provable speech ------
+def _run_check(cmd: str, expect: str):
+    """Execute a claim's re-derivation route through _run — the estate's one
+    audited shell seam (see its trust-domain note; routes are agent-authored
+    and land witnessed in the spine, never from user/network input). ok =
+    expect-fragment in output, or exit 0 when no expect is given. A vacuous
+    route is possible but visible forever in the record."""
+    code, out = _run(cmd, str(HERE), timeout=300)
+    return ((expect in out) if expect else (code == 0)), code, out.strip()
+
+
+def cmd_say(args_: list):
+    """Provable speech — SPOOR FACT, spoken into the spine (spiral turn 9).
+    A claim enters the record WITH the command that re-derives it, and the
+    command RUNS at write time: passing -> spine kind 'fact'; failing -> the
+    claim lands as kind 'refuted' (exit 1) — the false version never enters
+    as fact, and the refutation is itself record (§9, the record that
+    corrects itself). Point-in-time sibling of drift assertions
+    (invariants). Ends the partial-read-claim class structurally: numbers
+    stop traveling as prose; kin re-derive with `station recheck` instead
+    of quoting.
+
+      station say "<claim>" --cmd "<command>" [--expect "<fragment>"]
+      station recheck [n]     re-run the last n spine facts' routes
+    """
+    if "--cmd" not in args_:
+        print('usage: station say "<claim>" --cmd "<command>" '
+              '[--expect "<fragment>"]')
+        sys.exit(1)
+    i = args_.index("--cmd")
+    claim = " ".join(args_[:i])
+    rest = args_[i + 1:]
+    if "--expect" in rest:
+        j = rest.index("--expect")
+        cmd, expect = " ".join(rest[:j]), " ".join(rest[j + 1:])
+    else:
+        cmd, expect = " ".join(rest), ""
+    if not claim or not cmd:
+        print("(say needs both a claim and a --cmd route)")
+        sys.exit(1)
+    ok, code, out = _run_check(cmd, expect)
+    _spine_append("fact" if ok else "refuted",
+                  {"claim": claim, "cmd": cmd, "expect": expect,
+                   "exit": code, "ok": ok, "out": out[-400:]})
+    if ok:
+        print(f"[fact] {claim}\n  route: {cmd}"
+              + (f" ~ contains {expect!r}" if expect else " (exit 0)"))
+    else:
+        print(f"[REFUTED AT WRITE] {claim}\n  route: {cmd}\n"
+              f"  expect: {expect!r}\n  got: ...{out[-200:]}")
+        sys.exit(1)
+
+
+def cmd_recheck(n: int = 5):
+    """Walk the track again: re-run the routes of the last n spine facts.
+    A fact was true at its timestamp; STALE means the world moved — which is
+    exactly what quoting would have missed. Quote nothing; re-derive."""
+    if not SPINE.is_file():
+        print("spine empty")
+        return
+    facts = [json.loads(ln) for ln in
+             SPINE.read_text(encoding="utf-8").splitlines()
+             if ln.strip() and '"kind": "fact"' in ln][-n:]
+    if not facts:
+        print("(no spine facts to recheck — nothing has been said in SPOOR)")
+        return
+    stale = 0
+    for f in facts:
+        b = f["body"]
+        ok, _, out = _run_check(b["cmd"], b.get("expect", ""))
+        stale += (not ok)
+        print(f"{'ok   ' if ok else 'STALE'} [{f['t']}] {b['claim'][:90]}")
+        if not ok:
+            print(f"      true-at-write; now: ...{out[-160:]}")
+    if stale:
+        sys.exit(1)
+
+
 def cmd_spine(n: int = 10, match: str = ""):
     """Last n events; with match, last n events CONTAINING it (spiral turn
     4: unfiltered tails drowned a PULSE note among newer chatter -> false
@@ -1007,6 +1090,10 @@ def main():
         cmd_log(args[1], tail=tail, full="--full" in args)
     elif cmd == "note":
         cmd_note(" ".join(args[1:]))
+    elif cmd == "say":
+        cmd_say(args[1:])
+    elif cmd == "recheck":
+        cmd_recheck(int(args[1]) if len(args) > 1 else 5)
     elif cmd == "spine":
         cmd_spine(int(args[1]) if len(args) > 1 else 10,
                   args[2] if len(args) > 2 else "")
