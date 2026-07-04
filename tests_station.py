@@ -78,6 +78,53 @@ class StationTests(unittest.TestCase):
         self.assertEqual(events[-2]["by"], "suite-probe")
         self.assertTrue(events[-1]["by"].startswith("pid"))
 
+    def test_burn_rollup_idempotent_and_cert_marked(self):
+        # the cumulative counter's one integrity invariant: a day lands ONCE
+        _led, _scan, _cert = (station.BURN_LEDGER, station._burn_days,
+                              station._certified_count)
+        station.BURN_LEDGER = self.tmp / "burn.jsonl"
+        station._burn_days = lambda days: {d: 1000 for d in days}
+        station._certified_count = lambda: 5
+        try:
+            station.cmd_burn()
+            station.cmd_burn()   # second run must add nothing
+            recs = [json.loads(ln) for ln in station.BURN_LEDGER.read_text(
+                encoding="utf-8").splitlines()]
+        finally:
+            station.BURN_LEDGER, station._burn_days = _led, _scan
+            station._certified_count = _cert
+        days = [r["day"] for r in recs if r["kind"] == "day"]
+        self.assertEqual(len(days), len(set(days)))   # no double-append
+        self.assertEqual(len(days), 28)
+        certs = [r for r in recs if r["kind"] == "cert"]
+        self.assertEqual(len(certs), 1)               # marker lands once
+        self.assertEqual(certs[0]["certified"], 5)
+
+    def test_eras_split_at_cert_markers(self):
+        import io
+        from contextlib import redirect_stdout
+        _led, _scan = station.BURN_LEDGER, station._burn_days
+        station.BURN_LEDGER = self.tmp / "burn.jsonl"
+        with station.BURN_LEDGER.open("w", encoding="utf-8") as f:
+            for rec in (
+                {"kind": "day", "day": "2026-01-01", "burn": 100},
+                {"kind": "day", "day": "2026-01-02", "burn": 200},
+                {"kind": "cert", "certified": 1, "day": "2026-01-02"},
+                {"kind": "day", "day": "2026-01-03", "burn": 50},
+            ):
+                f.write(json.dumps(rec) + "\n")
+        station._burn_days = lambda days: {d: 25 for d in days}
+        buf = io.StringIO()
+        try:
+            with redirect_stdout(buf):
+                station.cmd_eras()
+        finally:
+            station.BURN_LEDGER, station._burn_days = _led, _scan
+        out = buf.getvalue()
+        self.assertIn("burn~300 -> cert #1", out)     # closed era summed
+        self.assertIn("burn~75", out)                 # open = 50 + 25 partial
+        self.assertIn("OK", out)                      # 75 <= 300
+
     def test_errata_add_appends_classed_entry(self):
         station.cmd_errata(["add", "test-class", "what happened",
                            "the cost", "the guard"])
