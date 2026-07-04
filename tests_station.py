@@ -212,6 +212,27 @@ class StationTests(unittest.TestCase):
         self.assertEqual(e["guard"], "the guard")
 
 
+class PreregTests(unittest.TestCase):
+    def test_verdict_entry_supersedes_armed_status(self):
+        import tempfile as tf
+        tmp = Path(tf.mkdtemp())
+        _p, _s = station.PREREGS, station.SPINE
+        station.PREREGS = tmp / "preregs.jsonl"
+        station.SPINE = tmp / "spine.jsonl"
+        try:
+            with station.PREREGS.open("w", encoding="utf-8") as f:
+                f.write(json.dumps({"id": "x", "status": "armed",
+                                    "due": "2020-01-01", "rule": "r"}) + "\n")
+            regs = station._fold_preregs()
+            self.assertEqual(regs["x"]["status"], "armed")
+            station.cmd_preregs(["score", "x", "FAIL", "the organ died"])
+            regs = station._fold_preregs()
+            self.assertEqual(regs["x"]["status"], "FAIL")
+            self.assertEqual(regs["x"]["evidence"], "the organ died")
+        finally:
+            station.PREREGS, station.SPINE = _p, _s
+
+
 class PulseSpeakerTests(unittest.TestCase):
     """The autonomic speakers (turns 11 + 35): wrong dedupe = spine spam
     or silenced transitions; both corrupt the record's signal."""

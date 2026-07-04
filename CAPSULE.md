@@ -36,6 +36,8 @@ COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
   seal <ledger.jsonl>      clock-stamped attributed append (stdin JSON; typed
                            't' always discarded — never hand-append ledgers)
   errata [add cls what paid guard]  self-error ledger + live distribution
+  preregs [score <id> <v> <ev>]  armed kill conditions w/ due dates (Law II
+                           scheduler); wake surfaces overdue; FAIL = working
   cure "<fragment>"        grimoire lookup FIRST on any error
   pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
 

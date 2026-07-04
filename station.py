@@ -35,6 +35,9 @@ Commands:
                             hermes-agent (local model, $0); stigmergic —
                             drop food, walk away, collect later
   station llm [model] "<p>"|-  one free local-inference call
+  station preregs [score <id> <verdict> <evidence...>]  armed kill conditions
+                            with due dates (Law II's scheduler); wake surfaces
+                            overdue arms; FAIL verdicts are the system working
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
@@ -365,6 +368,16 @@ def cmd_wake():
     if think:
         lines.append(f"thinking {len(think)} open: {', '.join(think)}"
                      " -> E:/station/THINKING/")
+    # armed kill conditions past due: Law II relies on these being SCORED,
+    # and scoring relied on memory until turn 43
+    try:
+        today = _now()[:10]
+        due = [r["id"] for r in _fold_preregs().values()
+               if r["status"] == "armed" and r.get("due", "9999") < today]
+        if due:
+            lines.append(f"preregs DUE: {', '.join(due)} -> station preregs")
+    except (json.JSONDecodeError, KeyError):
+        pass
     lines += _log_freshness(reg)
     if SPINE.is_file():
         events = SPINE.read_text(encoding="utf-8").splitlines()
@@ -595,6 +608,7 @@ def cmd_backup():
         (HERE / "llm-ledger.jsonl", dest / "station" / "llm-ledger.jsonl"),
         (HERE / "coggate-ledger.jsonl", dest / "station" / "coggate-ledger.jsonl"),
         (HERE / "burn-ledger.jsonl", dest / "station" / "burn-ledger.jsonl"),
+        (HERE / "preregs.jsonl", dest / "station" / "preregs.jsonl"),
         (CURSORS / "witness.json", dest / "station" / "witness.json"),
         (Path("E:/atlas-station/CLAIMS.json"), dest / "atlas" / "CLAIMS.json"),
         (Path("E:/mission-runs/results.jsonl"), dest / "boundary" / "results.jsonl"),
@@ -777,6 +791,66 @@ def cmd_handoff(next_actions: str = ""):
     print(f"[handoff] -> {out}")
     print("[handoff] molt checklist: journal current? in-flight work "
           "log-recoverable? then /clear is LOSSLESS.")
+
+
+PREREGS = HERE / "preregs.jsonl"
+
+
+def _fold_preregs():
+    """Registry fold: arm entries define a prereg; later verdict entries
+    (same id, 'verdict' key) supersede its status. Append-only."""
+    regs = {}
+    if PREREGS.is_file():
+        for ln in PREREGS.read_text(encoding="utf-8-sig").splitlines():
+            if not ln.strip():
+                continue
+            r = json.loads(ln)
+            if "verdict" in r:
+                if r["id"] in regs:
+                    regs[r["id"]]["status"] = r["verdict"]
+                    regs[r["id"]]["evidence"] = r.get("evidence", "")
+            else:
+                regs[r["id"]] = r
+    return regs
+
+
+def cmd_preregs(args_: list):
+    """Born-falsifiable (Law II) gets a scheduler: every armed kill
+    condition lives here with its due date and scoring hint, instead of as
+    a spine note an instance must remember to re-find. `station preregs`
+    lists; `score <id> <PASS|FAIL|NARROWED> <evidence...>` records the
+    verdict (append-only, clock-stamped). Wake surfaces overdue arms."""
+    regs = _fold_preregs()
+    if args_ and args_[0] == "score":
+        if len(args_) < 4:
+            print("usage: station preregs score <id> <PASS|FAIL|NARROWED> "
+                  "<evidence...>")
+            sys.exit(1)
+        pid, verdict = args_[1], args_[2].upper()
+        if pid not in regs:
+            print(f"unknown prereg {pid}; known: {', '.join(regs)}")
+            sys.exit(1)
+        if verdict not in ("PASS", "FAIL", "NARROWED"):
+            print("verdict must be PASS, FAIL or NARROWED")
+            sys.exit(1)
+        ev = " ".join(args_[3:])
+        _append_line(PREREGS, json.dumps(
+            {"id": pid, "verdict": verdict, "evidence": ev, "t": _now(),
+             "by": os.environ.get("STATION_ACTOR",
+                                  f"pid{os.getpid()}")}) + "\n")
+        _spine_append("prereg-verdict", {"id": pid, "verdict": verdict,
+                                         "evidence": ev[:160]})
+        print(f"[prereg] {pid} -> {verdict} (recorded; a FAIL is the "
+              f"immune system working, not a defeat)")
+        return
+    today = _now()[:10]
+    for r in regs.values():
+        state = r["status"]
+        overdue = state == "armed" and r.get("due", "9999") < today
+        print(f"{'DUE  ' if overdue else state[:5].ljust(5)} {r['id']:<18}"
+              f" due={r.get('due', '-')} | {r['rule'][:90]}")
+        if state == "armed":
+            print(f"      score: {r.get('score_hint', '-')[:100]}")
 
 
 def cmd_rescue(repo: str):
@@ -1572,6 +1646,8 @@ def main():
         cmd_witness()
     elif cmd == "backup":
         cmd_backup()
+    elif cmd == "preregs":
+        cmd_preregs(args[1:])
     elif cmd == "rescue":
         if len(args) < 2:
             print("usage: station rescue <repo>")
