@@ -205,6 +205,35 @@ better searcher when the incumbent stalls); local weights (ollama) for
 volume work that truly needs language. Tokens are spent on judgment,
 never on iteration.
 
+## 13. The free mind — section 12 made flesh (2026-07-04)
+
+Principle: cognition with a zero-token tier changes which organs can exist.
+Research grounding (research/: rlm.md, hermes-local.md, sleep-compute.md —
+all with primary sources):
+- **`station llm`** — the free-mind primitive: one hardened local-inference
+  call (WSL ollama; qwen2.5-coder:7b for code, hermes3:8b for schema-bound
+  output). None = DOWN, never an empty answer.
+- **`hermes.py ask`** — RLM-shaped recursive reading (arXiv:2512.24601),
+  7B-safe form: fixed grep→chunk→map→reduce loop, depth wall 3, 64-call
+  budget, single-chunk fast path. Transcript archaeology at $0: first live
+  verified answer (wave-2 exclusions) in 1 call. Reader not oracle — counts
+  travel with every answer; load-bearing claims re-verified at source.
+- **`hermes.py digest`** (pulse step 6, the night mind) — evidence-bounded
+  offline cognition: EXTRACTIVE schema digests of new log bytes only (the
+  one job ≤8B models do faithfully per sleep-compute lit), own cursor
+  namespace (wake's unread signal never stolen), digests are candidates —
+  raw bytes remain the record. Mandatory-anomaly rule after live wobble
+  (429s listed as fact, missed as anomaly).
+- **The free hunt** (pulse step 4) — the record attack running nightly at
+  $0; first cycle produced honest no-emit (7B construct crashed), every
+  seam verified: generation→extraction→execution→triage→ledger.
+Explicitly NOT built, per evidence: abstractive memory rewrite, merging,
+autonomous deletion, 7B "dreaming" (misevolution + hallucinated
+consolidation lit). The failed shapes are as load-bearing as the built ones.
+Latent: Hermes Agent (NousResearch, ollama-compatible) as an always-on
+local agent shell — a trust-surface decision, operator's beat; memory-index
+refresh PROPOSALS as a night job (candidates file, wake-time ratification).
+
 ## The convergence
 
 Read as one design: an organism whose **body** is repositories, whose

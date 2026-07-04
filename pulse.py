@@ -20,7 +20,10 @@ Each beat, in priority order (one advancing action per beat + hygiene):
   5. DEMIURGE CYCLE: else, if no KILL file -> one gated self-improvement
      cycle (the compounding loop, beating nightly instead of when someone
      remembers).
-  6. BACKUP + spine note, every beat.
+  6. NIGHT MIND: hermes digest — free local model pre-digests new log bytes
+     into advisory candidates (own cursor namespace; never steals the wake's
+     unread signal; extractive-only per sleep-compute evidence).
+  7. BACKUP + spine note, every beat.
 
 Usage: python pulse.py [--dry]     Schedule: schtasks (see register_pulse.ps1)
 """
@@ -170,7 +173,14 @@ def main():
     else:
         beat["action"] = "idle (work in flight or KILL present)"
 
-    # 5 — survivability, every beat
+    # 6 — night mind: pre-digest new log bytes on the FREE model (advisory
+    # candidates; wake cursors untouched, raw bytes remain the record).
+    # Evidence-bounded: extractive+schema only (station/research/sleep-compute.md).
+    if not DRY and ollama_up():
+        code, out = run([PY, str(HERE / "hermes.py"), "digest"], HERE, 1800)
+        beat["digest"] = out.strip().splitlines()[-1][:80] if out.strip() else ""
+
+    # 7 — survivability, every beat
     run([PY, str(HERE / "station.py"), "backup"], HERE, 900)
     note(f"PULSE {beat['action']}")
     print(beat)
