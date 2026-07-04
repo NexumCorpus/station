@@ -9,12 +9,22 @@ same bytes.
 
 | command | what |
 |---|---|
-| `station wake` | whole-estate digest in ~9 lines: repo heads + dirt, claims ledger (certified/rejected/pending), process counts, per-log **unread byte counts**, spine tail |
-| `station suites [name]` | run all registered verification suites → one PASS/FAIL line each (with cwd); exit 1 on any FAIL, typo'd names error rather than false-PASS |
-| `station log <name>` | cursor read: returns only bytes appended since last read; `--tail N` peeks without moving the cursor; `--full` dumps |
-| `station note <text>` | append a telegraph event to the spine (for the next session/instance) |
-| `station spine [N]` | last N spine events (append-only cross-repo ledger, JSONL) |
+| `station wake` | whole-estate digest: repo heads + dirt (with rescue grading), claims ledger, process counts, §15 era verdict, open THINKING ledgers, per-log **unread byte counts**, testament, spine tail |
+| `station suites [name]` | all registered verification suites → one PASS/FAIL line each; verdict **cached by tree-hash** (FAIL never cached); typo'd names error rather than false-PASS |
+| `station log <name>` | cursor read: only bytes appended since last read; glob paths resolve the newest file with per-file cursors; `--tail N` peeks, `--full` dumps |
+| `station say / recheck / retire` | **provable speech**: a claim's re-derivation route runs at write (false claims land as `refuted`, never fact); facts are re-walked autonomically — newest-per-route, moment-facts retirable, world-moves alarm as `stale` |
+| `station seal <ledger>` | clock-stamped attributed ledger append (stdin JSON; hand-typed timestamps are discarded — they drifted +48 min in practice) |
+| `station burn / eras / vitals / quota` | persistent daily burn counter + **per-certification-era accounting**: the "metered tokens per certified claim, trending down" vital sign in decidable form |
+| `station drift / witness / backup / rescue` | executable cross-reference assertions · append-only notary (alarms on history rewrite) · continuity mirror · offsite snapshots of *untracked* work |
+| `station note / spine / tally / map / cure / errata / pin` | telegraph · filtered event reads · ledger stats · AST outlines · grimoire lookup · self-error ledger · content-hash pointers |
+| `station will / handoff / molt` | testament (intent-at-death) · molt artifact with facts re-derived at the seam · the whole session seal in one call |
+| `station llm / hand / wsl` | free local-model call · stigmergic tasking of a jailed WSL agent · bytes-not-quotes WSL script runner |
 | `station regs` | show the registry |
+
+All shared-ledger appends are lock-serialized (plain append-mode writes
+measurably tore/lost data under multi-process contention). The full verb
+list with usage lives in `station help`; the dense agent briefing in
+`CAPSULE.md` (drift-checked against the code so neither can rot silently).
 
 ## Design principles
 
