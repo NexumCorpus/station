@@ -125,6 +125,22 @@ class StationTests(unittest.TestCase):
         self.assertIn("burn~75", out)                 # open = 50 + 25 partial
         self.assertIn("OK", out)                      # 75 <= 300
 
+    def test_seal_stamps_clock_and_discards_typed_t(self):
+        import io
+        led = self.tmp / "led.jsonl"
+        old_stdin = sys.stdin
+        sys.stdin = io.StringIO(json.dumps(
+            {"t": "1999-01-01T00:00:00Z", "turn": 99, "x": 1}))
+        try:
+            station.cmd_seal(str(led))
+        finally:
+            sys.stdin = old_stdin
+        r = json.loads(led.read_text(encoding="utf-8").splitlines()[-1])
+        self.assertNotEqual(r["t"], "1999-01-01T00:00:00Z")  # typed t dies
+        self.assertRegex(r["t"], r"^20\d\d-\d\d-\d\dT")       # clock stamped
+        self.assertEqual(r["x"], 1)                           # payload intact
+        self.assertIn("by", r)                                # attributed
+
     def test_errata_add_appends_classed_entry(self):
         station.cmd_errata(["add", "test-class", "what happened",
                            "the cost", "the guard"])

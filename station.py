@@ -34,6 +34,10 @@ Commands:
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
+  station seal <ledger.jsonl>  clock-stamped ledger append: one JSON object
+                            via stdin; 't' is ALWAYS the station's own clock
+                            (hand-typed times drifted +48min into witnessed
+                            ledgers - the invented-timestamp errata)
   station tally <jsonl> [field]   dense per-group ledger stats
   station map <file>        AST outline; Read exact offsets, never whole files
   station cure "<fragment>" grimoire lookup FIRST on any error
@@ -1012,6 +1016,31 @@ def cmd_burn():
           + (f" | {tail}" if tail else ""))
 
 
+def cmd_seal(path_arg: str):
+    """Clock-stamped ledger append. Reads ONE JSON object from stdin (BOM
+    already eaten at the pipe joint), overwrites 't' with the station's own
+    clock read, adds by= attribution, appends. Kills the invented-timestamp
+    class: an author's typed time is a memory, not a measurement — turns
+    22-24 landed up to +48min in the future in a WITNESSED ledger."""
+    raw = sys.stdin.read()
+    try:
+        rec = json.loads(raw)
+        if not isinstance(rec, dict):
+            raise ValueError
+    except (json.JSONDecodeError, ValueError):
+        print("seal: stdin must be exactly one JSON object")
+        sys.exit(1)
+    typed = rec.get("t")
+    rec["t"] = _now()
+    rec.setdefault("by", os.environ.get("STATION_ACTOR", f"pid{os.getpid()}"))
+    p = Path(path_arg)
+    with p.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(rec) + "\n")
+    note = (f" (typed t={typed} discarded)" if typed and typed != rec["t"]
+            else "")
+    print(f"sealed -> {p.name} t={rec['t']} by={rec['by']}{note}")
+
+
 def _fold_eras():
     """Fold burn-ledger into (closed_eras, open_era). Pure ledger read —
     cheap enough for every wake; no transcript scans."""
@@ -1266,6 +1295,11 @@ def main():
         cmd_burn()
     elif cmd == "eras":
         cmd_eras()
+    elif cmd == "seal":
+        if len(args) < 2:
+            print("usage: station seal <ledger.jsonl>   (JSON object via stdin)")
+            sys.exit(1)
+        cmd_seal(args[1])
     elif cmd == "handoff":
         cmd_handoff(" ".join(args[1:]))
     elif cmd == "will":
