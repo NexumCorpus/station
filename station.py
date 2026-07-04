@@ -1357,9 +1357,11 @@ def cmd_say(args_: list):
 
 def _walk_facts(n: int = 8):
     """Re-derive the last n LIVE spine facts by executing their routes.
-    Retired facts (moment-facts: true of a time, not of the world) are
-    skipped — they cannot go stale, only expire. Returns
-    [(event, ok, fresh_out)] — shared by recheck and handoff."""
+    Skipped: retired facts (moment-facts — they expire, not stale) and
+    SUPERSEDED facts (turn 41: a newer fact on the SAME route is the
+    current claim about that observable; without this, every autonomic
+    speaker's history became a permanent STALE alarm on every change).
+    Returns [(event, ok, fresh_out)] — shared by recheck and handoff."""
     if not SPINE.is_file():
         return []
     facts, retired = [], set()
@@ -1370,7 +1372,11 @@ def _walk_facts(n: int = 8):
             facts.append(json.loads(ln))
         elif '"kind": "retired"' in ln:
             retired.update(json.loads(ln)["body"].get("claims", []))
-    live = [f for f in facts if f["body"]["claim"] not in retired][-n:]
+    by_route = {}                          # newest fact per route wins
+    for i, f in enumerate(facts):
+        if f["body"]["claim"] not in retired:
+            by_route[f["body"]["cmd"]] = (i, f)
+    live = [f for _, f in sorted(by_route.values())][-n:]
     walked = []
     for f in live:
         ok, _, out = _run_check(f["body"]["cmd"], f["body"].get("expect", ""))

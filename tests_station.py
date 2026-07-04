@@ -140,6 +140,19 @@ class StationTests(unittest.TestCase):
         self.assertEqual(stales[0]["body"]["n"], 1)
         self.assertIn("world is A", stales[0]["body"]["claims"][0])
 
+    def test_superseded_fact_leaves_the_walk(self):
+        probe = self.tmp / "world.txt"
+        probe.write_text("state-A", encoding="utf-8")
+        route = f'cmd /c type "{probe}"'
+        station.cmd_say(["world is A", "--cmd", route, "--expect", "state-A"])
+        probe.write_text("state-B", encoding="utf-8")   # world moves on
+        station.cmd_say(["world is B", "--cmd", route, "--expect", "state-B"])
+        walked = station._walk_facts(5)
+        self.assertEqual(len(walked), 1)                # one fact per route
+        f, ok, _ = walked[0]
+        self.assertEqual(f["body"]["claim"], "world is B")
+        self.assertTrue(ok)                             # and it is current
+
     def test_retire_removes_fact_from_walk_but_not_record(self):
         probe = self.tmp / "world.txt"
         probe.write_text("state-A", encoding="utf-8")
