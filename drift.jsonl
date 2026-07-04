@@ -12,3 +12,4 @@
 {"claim": "WSL-Anchor persists (Startup shortcut + hatch reachable) - hand dies mid-task without it", "cmd": "python E:/station/checks/anchor.py", "expect": "CHECK-OK"}
 {"claim": "the pulse beats: PULSE spine note within 5h (3h schedule + grace) - silent heart-stop is a hygiene FAIL", "cmd": "python E:/station/checks/heartbeat.py", "expect": "CHECK-OK"}
 {"claim": "every dispatchable station verb is documented in station help (cold-instance discovery surface)", "cmd": "python E:/station/checks/verbs.py", "expect": "CHECK-OK"}
+{"claim": "continuity mirror restore-worthy: append-only ledgers are a PREFIX of source, never diverged/missing", "cmd": "python E:/station/checks/mirror.py", "expect": "CHECK-OK"}

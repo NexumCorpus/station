@@ -446,6 +446,14 @@ def cmd_backup():
         (HERE / "spine.jsonl", dest / "station" / "spine.jsonl"),
         (HERE / "grimoire.jsonl", dest / "station" / "grimoire.jsonl"),
         (HERE / "drift.jsonl", dest / "station" / "drift.jsonl"),
+        # ledgers born after backup existed, caught missing by checks/
+        # mirror.py the day it was born (turn 18): a ledger joins the
+        # backup set AND the witness registry at birth, or it is at risk
+        (HERE / "spiral.jsonl", dest / "station" / "spiral.jsonl"),
+        (HERE / "errata.jsonl", dest / "station" / "errata.jsonl"),
+        (HERE / "pulse-ledger.jsonl", dest / "station" / "pulse-ledger.jsonl"),
+        (HERE / "llm-ledger.jsonl", dest / "station" / "llm-ledger.jsonl"),
+        (HERE / "coggate-ledger.jsonl", dest / "station" / "coggate-ledger.jsonl"),
         (CURSORS / "witness.json", dest / "station" / "witness.json"),
         (Path("E:/atlas-station/CLAIMS.json"), dest / "atlas" / "CLAIMS.json"),
         (Path("E:/mission-runs/results.jsonl"), dest / "boundary" / "results.jsonl"),
