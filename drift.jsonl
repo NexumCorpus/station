@@ -9,3 +9,4 @@
 {"claim": "demiurge substrate seal intact", "cmd": "python E:/demiurge/driver.py verify", "expect": "substrate intact"}
 {"claim": "task area maps stay TOTAL over probes (self-report instrument dependency)", "cmd": "python E:/station/checks/area_total.py", "expect": "OK"}
 {"claim": "every SPOOR pin in registered repos resolves + hash matches", "cmd": "python E:/station/checks/pins.py", "expect": "OK"}
+{"claim": "WSL-Anchor persists (Startup shortcut + hatch reachable) - hand dies mid-task without it", "cmd": "python E:/station/checks/anchor.py", "expect": "OK"}

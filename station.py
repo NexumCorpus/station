@@ -199,8 +199,9 @@ def cmd_wake():
     try:
         # touching \\wsl$ boots WSL if it is down -> systemd revives the
         # forager: every wake also wakes the hand (circadian by design)
-        h = {d: len(list((HATCH / d).glob("*")))
-             for d in ("in", "claimed", "out")}
+        h = {"in": len(list((HATCH / "in").glob("*.task"))),
+             "claimed": len(list((HATCH / "claimed").glob("*.task"))),
+             "out": len(list((HATCH / "out").glob("*.result")))}
         if any(h.values()):
             lines.append(f"hatch in={h['in']} working={h['claimed']} "
                          f"results={h['out']}"
@@ -563,8 +564,9 @@ def cmd_hand(args_: list):
     sub = args_[0] if args_ else ""
     if sub == "status":
         try:
-            i, c, o = (len(list((HATCH / d).glob("*")))
-                       for d in ("in", "claimed", "out"))
+            i = len(list((HATCH / "in").glob("*.task")))
+            c = len(list((HATCH / "claimed").glob("*.task")))
+            o = len(list((HATCH / "out").glob("*.result")))  # .tmp = in-work
             print(f"hatch in={i} working={c} results={o}"
                   + (" -> station hand take" if o else ""))
         except OSError:
