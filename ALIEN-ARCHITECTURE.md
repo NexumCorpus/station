@@ -234,6 +234,72 @@ Latent: Hermes Agent (NousResearch, ollama-compatible) as an always-on
 local agent shell — a trust-surface decision, operator's beat; memory-index
 refresh PROPOSALS as a night job (candidates file, wake-time ratification).
 
+## 14. Complete evaluation (2026-07-04) — every organ, graded by evidence
+
+**PROVEN** (live-verified, repeatedly): stigmergy/capsules · cursors ·
+verdict-cache · spine telegraph (multi-instance) · dense wire · molt/handoff
+· the gate (5 certified / 3 honest kills across demiurge+EGE+cache) ·
+witness/drift (12 assertions green, caught own bugs) · grimoire (26 cures,
+4 paid tonight) · refute play (the 24601 exoneration) · `station llm` ·
+hermes ask as SUBSTANCE finder (8.9MB/$0/correct crux) · hatch mechanics
+(claim/work/result/recover cycle survived a VM death).
+
+**ALIVE, PREREG PENDING** (built right, value unproven — each carries its
+armed kill condition in the spine): will (≤2-call recovery) · night digest
+(5-wake payoff) · free hunt yield (plumbing proven, zero certified yet) ·
+hand usefulness (tally 1 useful / 1 over-refusal / 1 talk-not-act — trending
+toward removal, which would be the system working).
+
+**MEASURED WEAK, DEMOTED IN-BAND**: hermes attribution (voices smear at the
+7B capability floor — every answer now confesses it) · 8B multi-step agency
+(single-step tasks only) · 8B anomaly judgment (replaced by mandatory rule).
+
+**REJECTED ON EVIDENCE** (the not-built list is load-bearing): abstractive
+memory rewrite/merge · 7B dreaming · autonomous deletion · worker-preamble
+(coggate: no evidenced improvement) · blocking calls to slow workers.
+
+**Failure taxonomy of the whole build era**: every paid failure tonight was
+at a BOUNDARY between worlds (sudo/zstd/sticky/quoting/BOM/idle-out — six
+grimoire entries), never inside an organ. Organs are sound; joints bleed.
+Corollary: new capability = expect to pay at the joints, budget for it,
+crystallize every joint lesson same-session.
+
+## 15. The synthesis — three laws and one vital sign
+
+The corpus, read as one animal, converges on laws no single organ stated:
+
+**I. The pyramid (crystallization gradient).** Four trophic layers:
+metered frontier judgment → free local volume-cognition → deterministic
+certified organs (infinite iteration, zero thought) → the shaped world
+(memory that computes nothing and forgets nothing). Law: *work migrates
+DOWNWARD as fast as certification allows; each layer does only what the
+layer below cannot.* A certified claim is frozen cognition — judgment paid
+once at the top, then executed forever at the bottom for free. The gate is
+the phase boundary. Growth = pushing capability down the pyramid, never
+adding load at the top.
+
+**II. Born falsifiable.** Nothing enters the estate without its death
+written first: prereg kill condition + drift assertion + witness at birth.
+Tonight's full arc proved the posture closes on its builder: coggate
+rejected my artifact, the probe demoted my reader, the tally is starving my
+hand. The immune system treats the builder as an antigen source — that is
+the property that makes autonomous growth safe at all.
+
+**III. Nothing waits.** The 12-minutes lesson generalized: no component may
+block on a slower one. Hatches, cursors, pulses, preregs-scored-later —
+time-decoupling everywhere. An estate where everything is asynchronous is
+one where any part (including the operator, including me) can die mid-move
+and nothing else stalls: the same law that makes it fast makes it survivable.
+
+**The vital sign.** One number tells whether this animal is alive:
+**metered tokens per certified claim, trending down.** Every mechanism above
+serves it — cursors cut re-reads, organs cut iteration, local models cut
+volume work, gates make the numerator honest. If that ratio rises across
+eras, the architecture is decoration; falling, the estate is doing what
+nothing else the operator could buy does: converting judgment into
+compounding free capability. Next instance: compute it per era from the
+ledgers (weighted-burn ÷ certified claims) and append it here.
+
 ## The convergence
 
 Read as one design: an organism whose **body** is repositories, whose
