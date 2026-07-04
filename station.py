@@ -1241,12 +1241,24 @@ def cmd_recheck(n: int = 5):
         print("(no spine facts to recheck — nothing has been said in SPOOR)")
         return
     stale = 0
+    stale_claims = []
     for f, ok, out in walked:
         stale += (not ok)
         print(f"{'ok   ' if ok else 'STALE'} [{f['t']}] {f['body']['claim'][:90]}")
         if not ok:
+            stale_claims.append(f["body"]["claim"][:60])
             print(f"      true-at-write; now: ...{out[-160:]}")
     if stale:
+        # the alarm joins the record (autonomic recheck runs unattended —
+        # a printed STALE nobody reads is not an alarm). Deduped against
+        # the last stale event so a persisting stale fact is news once,
+        # not 8x/day filler.
+        last = None
+        for ln in SPINE.read_text(encoding="utf-8").splitlines():
+            if '"kind": "stale"' in ln:
+                last = json.loads(ln)["body"].get("claims")
+        if last != stale_claims:
+            _spine_append("stale", {"n": stale, "claims": stale_claims})
         sys.exit(1)
 
 

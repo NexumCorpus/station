@@ -257,6 +257,10 @@ def main():
     # daily burn rollup + cert markers (no-op unless a UTC day completed or
     # certified moved; feeds station eras — the SS15 decidable form)
     run([PY, str(HERE / "station.py"), "burn"], HERE, 300)
+    # autonomic fact hygiene: re-derive the last sealed facts; a world-move
+    # after seal lands as a deduped 'stale' spine event instead of crossing
+    # a molt as a quotable lie (exit 1 on stale is expected, not a beat fail)
+    run([PY, str(HERE / "station.py"), "recheck", "8"], HERE, 600)
     run([PY, str(HERE / "station.py"), "backup"], HERE, 900)
     note(f"PULSE {beat['action']}")
     jnote("beat-end", action=beat["action"])

@@ -125,6 +125,21 @@ class StationTests(unittest.TestCase):
         self.assertIn("burn~75", out)                 # open = 50 + 25 partial
         self.assertIn("OK", out)                      # 75 <= 300
 
+    def test_recheck_stale_lands_one_deduped_spine_event(self):
+        probe = self.tmp / "world.txt"
+        probe.write_text("state-A", encoding="utf-8")
+        station.cmd_say(["world is A", "--cmd", f'cmd /c type "{probe}"',
+                        "--expect", "state-A"])
+        probe.write_text("state-B", encoding="utf-8")   # the world moves
+        for _ in range(2):                              # unattended cadence
+            with self.assertRaises(SystemExit) as cm:
+                station.cmd_recheck(3)
+            self.assertEqual(cm.exception.code, 1)
+        stales = [e for e in self._spine_events() if e["kind"] == "stale"]
+        self.assertEqual(len(stales), 1)                # news once, not 8x/day
+        self.assertEqual(stales[0]["body"]["n"], 1)
+        self.assertIn("world is A", stales[0]["body"]["claims"][0])
+
     def test_seal_stamps_clock_and_discards_typed_t(self):
         import io
         led = self.tmp / "led.jsonl"
