@@ -533,28 +533,57 @@ def cmd_backup():
         (Path("E:/mission-runs/results.jsonl"), dest / "boundary" / "results.jsonl"),
         (Path("E:/mission-runs/w2_results.jsonl"), dest / "boundary" / "w2_results.jsonl"),
     ]
-    copied = 0
-    for src, dst in jobs:
-        if not src.exists():
-            continue
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        if src.is_dir():
-            sh.copytree(src, dst, dirs_exist_ok=True)
-        else:
-            sh.copy2(src, dst)
-        copied += 1
-    if not (dest / ".git").exists():
-        _run("git init -q", str(dest))
-    _run("git add -A", str(dest))
-    code, _ = _run(f'git commit -q -m "continuity backup {_now()}"', str(dest))
-    pushed = ""
-    rc, _ = _run("git remote get-url origin", str(dest))
-    if rc == 0:
-        pc, _ = _run("git push -q", str(dest))
-        pushed = " pushed" if pc == 0 else " PUSH-FAILED"
-    print(f"[backup] {copied} sources -> {dest} "
-          f"{'committed' if code == 0 else '(no changes)'}{pushed}")
-    _spine_append("backup", {"sources": copied})
+    # single-writer guard (turn 36): a beat backup racing a session backup
+    # collides in git (index.lock / push) — paid live 07:16Z. Skipping is
+    # safe: sources are append-only; the next backup carries everything.
+    CURSORS.mkdir(exist_ok=True)
+    lock = CURSORS / "backup.lock"        # NOT in dest: git add -A would
+                                          # commit a lock file
+    try:
+        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, str(os.getpid()).encode())
+        os.close(fd)
+    except FileExistsError:
+        try:
+            if time.time() - lock.stat().st_mtime < 900:
+                print("[backup] another backup in flight — skipped "
+                      "(append-only sources; the next one carries all)")
+                return
+            lock.unlink()                 # stale lock from a killed backup
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+        except OSError:
+            print("[backup] lock contention — skipped")
+            return
+    try:
+        copied = 0
+        for src, dst in jobs:
+            if not src.exists():
+                continue
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if src.is_dir():
+                sh.copytree(src, dst, dirs_exist_ok=True)
+            else:
+                sh.copy2(src, dst)
+            copied += 1
+        if not (dest / ".git").exists():
+            _run("git init -q", str(dest))
+        _run("git add -A", str(dest))
+        code, _ = _run(f'git commit -q -m "continuity backup {_now()}"',
+                       str(dest))
+        pushed = ""
+        rc, _ = _run("git remote get-url origin", str(dest))
+        if rc == 0:
+            pc, _ = _run("git push -q", str(dest))
+            pushed = " pushed" if pc == 0 else " PUSH-FAILED"
+        print(f"[backup] {copied} sources -> {dest} "
+              f"{'committed' if code == 0 else '(no changes)'}{pushed}")
+        _spine_append("backup", {"sources": copied})
+    finally:
+        try:
+            lock.unlink()
+        except OSError:
+            pass
 
 
 # ---------------------------------------------------------------- cure ------
