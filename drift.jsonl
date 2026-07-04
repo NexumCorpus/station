@@ -17,3 +17,4 @@
 {"claim": "spiral seals go through station seal (newest entry carries by=; turn-26 adoption law)", "cmd": "python -c \"import json,pathlib; ln=[l for l in pathlib.Path('E:/station/spiral.jsonl').read_text(encoding='utf-8-sig').splitlines() if l.strip()][-1]; print('OK' if 'by' in json.loads(ln) else 'UNSEALED-APPEND')\"", "expect": "OK"}
 {"claim": "CAPSULE.md covers every dispatchable verb (dispatch briefings must not rot)", "cmd": "python E:/station/checks/capsule.py", "expect": "CHECK-OK"}
 {"claim": "the journal RESURRECTS from the continuity mirror (restore drill + offsite HEAD reachable)", "cmd": "python E:/station/checks/restore.py", "expect": "CHECK-OK"}
+{"claim": "the self-model (ALIEN-ARCHITECTURE.md \u00a716) tracks the spiral change-ledger within lag", "cmd": "python E:/station/checks/selfmodel.py", "expect": "CHECK-OK"}

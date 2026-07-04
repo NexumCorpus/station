@@ -310,6 +310,47 @@ appends a spine sample; the trend is the time series of samples.
   reader) now run at $0. If future eras don't fall below it, §15 fails
   its own test.
 
+## 16. The spiral era — the self-model grew itself (through turn 47)
+
+The synthesis (§15) was read off a finished animal. Then the spiral ran, and
+the animal kept building — not new limbs but sharper *senses and self-honesty*.
+The additions cluster, and the clusters are the tell:
+
+**Proprioception — the organism learned to feel its own state.** Wake now
+senses the live thread's context weight (§10.1 made a signal, not a vibe), the
+per-certification-era burn trend (§15 in decidable form: `station burn`/`eras`),
+overdue kill conditions (`station preregs` — Law II got a scheduler instead of
+relying on an instance's memory), untracked work's offsite-protection state,
+open reasoning ledgers, and whether the public face lags the working truth.
+A wake used to report the world; now it reports the *body*.
+
+**Self-honesty hardened structurally, and it closed on its own scoreboard.**
+`station seal` made ledger timestamps un-fabricable (an instance had typed
+futures into a witnessed record). The fact-walk learned supersession and
+retirement so autonomic speakers stop crying stale forever. And the vital
+sign's own denominator was caught inflated — one claim certified twice counted
+as two capabilities — and corrected *worse and true* (5→4, ratio +30%), §9
+enforcing §15 on the estate's own count. The immune system reached the number
+that measures the immune system.
+
+**Survivability stopped being assumed.** Ledger appends were measured tearing
+under contention (1553 of 4000 lost) and locked. `station rescue` snapshots the
+one class of paid work git ignores. `checks/restore.py` *rehearses resurrection*
+— the journal is restored to a temp dir and booted from the mirror alone, every
+drift pass. The continuity claim went from asserted to drilled.
+
+**One coordination primitive replaced the conventions.** `station lease`:
+stigmergic, expiry-as-takeover, held-means-skip — Law III (nothing waits) as a
+verb any organ can call, the bespoke backup lock migrated onto it.
+
+The pattern across all four: the spiral did not add capability at the top of the
+pyramid: it pushed *self-knowledge* down to the cheapest layer that could hold
+it — a wake line, a drift assertion, a lock file. An organism becoming legible
+to itself for free. The vital sign fell honest; the self-model learned to check
+itself against its own change-ledger (drift: §16 may not lag `spiral.jsonl` by
+more than a few turns). Growth here was not more animal — it was the animal
+opening its eyes.
+
 ## The convergence
 
 Read as one design: an organism whose **body** is repositories, whose
