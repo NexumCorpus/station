@@ -24,6 +24,10 @@ Commands:
                             failing claim lands as 'refuted', never as fact
   station recheck [N]       re-run the last N spine facts' routes (quote
                             nothing; re-derive)
+  station retire "<match>"  retire moment-facts from the recheck walk (append
+                            a 'retired' event; the fact stays in the record,
+                            it just stops being re-derived - facts that
+                            described a moment cannot go stale, only expire)
   station spine [N]         last N spine events (default 10)
   station will [intent|done]  testament: intent-at-death, rewritten at every
                             move boundary (interrupts are not graceful)
@@ -1218,18 +1222,52 @@ def cmd_say(args_: list):
 
 
 def _walk_facts(n: int = 8):
-    """Re-derive the last n spine facts by executing their routes.
-    Returns [(event, ok, fresh_out)] — shared by recheck and handoff."""
+    """Re-derive the last n LIVE spine facts by executing their routes.
+    Retired facts (moment-facts: true of a time, not of the world) are
+    skipped — they cannot go stale, only expire. Returns
+    [(event, ok, fresh_out)] — shared by recheck and handoff."""
     if not SPINE.is_file():
         return []
-    facts = [json.loads(ln) for ln in
-             SPINE.read_text(encoding="utf-8").splitlines()
-             if ln.strip() and '"kind": "fact"' in ln][-n:]
+    facts, retired = [], set()
+    for ln in SPINE.read_text(encoding="utf-8").splitlines():
+        if not ln.strip():
+            continue
+        if '"kind": "fact"' in ln:
+            facts.append(json.loads(ln))
+        elif '"kind": "retired"' in ln:
+            retired.update(json.loads(ln)["body"].get("claims", []))
+    live = [f for f in facts if f["body"]["claim"] not in retired][-n:]
     walked = []
-    for f in facts:
+    for f in live:
         ok, _, out = _run_check(f["body"]["cmd"], f["body"].get("expect", ""))
         walked.append((f, ok, out))
     return walked
+
+
+def cmd_retire(match: str):
+    """Retire moment-facts from the autonomic walk. Append-only: the fact
+    stays witnessed in the record; a 'retired' event just removes it from
+    future re-derivation. Without this, a fact like 'HEAD is c6ed974 (turn
+    9 seal)' — true of a MOMENT — alarms as STALE forever the day the world
+    legitimately moves on."""
+    if not match.strip():
+        print('usage: station retire "<claim fragment>"')
+        sys.exit(1)
+    if not SPINE.is_file():
+        print("(spine empty)")
+        return
+    hits = []
+    for ln in SPINE.read_text(encoding="utf-8").splitlines():
+        if ln.strip() and '"kind": "fact"' in ln:
+            c = json.loads(ln)["body"]["claim"]
+            if match.lower() in c.lower() and c not in hits:
+                hits.append(c)
+    if not hits:
+        print(f"no live facts match {match!r}")
+        sys.exit(1)
+    _spine_append("retired", {"claims": hits, "match": match})
+    for c in hits:
+        print(f"retired: {c[:90]}")
 
 
 def cmd_recheck(n: int = 5):
@@ -1360,6 +1398,8 @@ def main():
         cmd_say(args[1:])
     elif cmd == "recheck":
         cmd_recheck(int(args[1]) if len(args) > 1 else 5)
+    elif cmd == "retire":
+        cmd_retire(" ".join(args[1:]))
     elif cmd == "spine":
         cmd_spine(int(args[1]) if len(args) > 1 else 10,
                   args[2] if len(args) > 2 else "")

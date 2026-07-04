@@ -140,6 +140,18 @@ class StationTests(unittest.TestCase):
         self.assertEqual(stales[0]["body"]["n"], 1)
         self.assertIn("world is A", stales[0]["body"]["claims"][0])
 
+    def test_retire_removes_fact_from_walk_but_not_record(self):
+        probe = self.tmp / "world.txt"
+        probe.write_text("state-A", encoding="utf-8")
+        station.cmd_say(["moment fact", "--cmd", f'cmd /c type "{probe}"',
+                        "--expect", "state-A"])
+        probe.write_text("state-B", encoding="utf-8")   # fact now stale
+        station.cmd_retire("moment fact")
+        self.assertEqual(station._walk_facts(5), [])    # gone from the walk
+        kinds = [e["kind"] for e in self._spine_events()]
+        self.assertIn("fact", kinds)                    # record untouched
+        self.assertIn("retired", kinds)                 # retirement witnessed
+
     def test_seal_stamps_clock_and_discards_typed_t(self):
         import io
         led = self.tmp / "led.jsonl"
