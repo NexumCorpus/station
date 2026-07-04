@@ -42,6 +42,8 @@ COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
   pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
 
 COMMANDS (lifecycle):
+  lease <name> [ttl]|--release  stigmergic lock: exit 0 acquired / 1 held;
+                           expiry = takeover (dead holders never wedge)
   will <intent>|done       testament: intent-at-death, wake-surfaced
   handoff [next] / molt [next]  molt artifact (facts re-derived at seam) /
                            the whole seal: handoff+will-done+backup in 1 call

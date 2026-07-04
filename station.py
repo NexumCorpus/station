@@ -45,6 +45,9 @@ Commands:
                             via stdin; 't' is ALWAYS the station's own clock
                             (hand-typed times drifted +48min into witnessed
                             ledgers - the invented-timestamp errata)
+  station lease <name> [ttl_s] | <name> --release   stigmergic coordination:
+                            exit 0 acquired, exit 1 held; expired leases are
+                            taken over (a dead holder never wedges the estate)
   station tally <jsonl> [field]   dense per-group ledger stats
   station map <file>        AST outline; Read exact offsets, never whole files
   station cure "<fragment>" grimoire lookup FIRST on any error
@@ -614,28 +617,14 @@ def cmd_backup():
         (Path("E:/mission-runs/results.jsonl"), dest / "boundary" / "results.jsonl"),
         (Path("E:/mission-runs/w2_results.jsonl"), dest / "boundary" / "w2_results.jsonl"),
     ]
-    # single-writer guard (turn 36): a beat backup racing a session backup
-    # collides in git (index.lock / push) — paid live 07:16Z. Skipping is
-    # safe: sources are append-only; the next backup carries everything.
-    CURSORS.mkdir(exist_ok=True)
-    lock = CURSORS / "backup.lock"        # NOT in dest: git add -A would
-                                          # commit a lock file
-    try:
-        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        os.write(fd, str(os.getpid()).encode())
-        os.close(fd)
-    except FileExistsError:
-        try:
-            if time.time() - lock.stat().st_mtime < 900:
-                print("[backup] another backup in flight — skipped "
-                      "(append-only sources; the next one carries all)")
-                return
-            lock.unlink()                 # stale lock from a killed backup
-            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.close(fd)
-        except OSError:
-            print("[backup] lock contention — skipped")
-            return
+    # single-writer guard (turn 36, generalized turn 44): a beat backup
+    # racing a session backup collides in git (index.lock / push) — paid
+    # live 07:16Z. Skipping is safe: sources are append-only; the next
+    # backup carries everything.
+    if not _lease_acquire("backup", 900):
+        print("[backup] another backup in flight — skipped "
+              "(append-only sources; the next one carries all)")
+        return
     try:
         copied = 0
         for src, dst in jobs:
@@ -661,10 +650,7 @@ def cmd_backup():
               f"{'committed' if code == 0 else '(no changes)'}{pushed}")
         _spine_append("backup", {"sources": copied})
     finally:
-        try:
-            lock.unlink()
-        except OSError:
-            pass
+        _lease_release("backup")
 
 
 # ---------------------------------------------------------------- cure ------
@@ -794,6 +780,62 @@ def cmd_handoff(next_actions: str = ""):
 
 
 PREREGS = HERE / "preregs.jsonl"
+LEASES = CURSORS / "leases"
+
+
+def _lease_acquire(name: str, ttl_s: int = 900) -> bool:
+    """Stigmergic lease: a JSON file with owner + expiry. Cooperative
+    (Law III: nothing waits — a held lease means SKIP or come back, never
+    block). Expired leases are taken over silently: a dead holder must
+    never wedge the estate. TOCTOU window exists and is accepted — every
+    holder is kin and the cost of a rare double-acquire is one redundant
+    run, not corruption (appends are lock-serialized separately)."""
+    LEASES.mkdir(parents=True, exist_ok=True)
+    p = LEASES / f"{name}.lease"
+    now = time.time()
+    if p.exists():
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            d = {}
+        if d.get("exp", 0) > now and d.get("pid") != os.getpid():
+            return False
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(
+        {"pid": os.getpid(), "exp": now + ttl_s,
+         "by": os.environ.get("STATION_ACTOR", f"pid{os.getpid()}"),
+         "t": _now()}), encoding="utf-8")
+    os.replace(tmp, p)
+    return True
+
+
+def _lease_release(name: str):
+    try:
+        (LEASES / f"{name}.lease").unlink()
+    except OSError:
+        pass
+
+
+def cmd_lease(args_: list):
+    """station lease <name> [ttl_s] | station lease <name> --release
+    Exit 0 = acquired (or released), exit 1 = held by someone alive."""
+    if not args_:
+        print("usage: station lease <name> [ttl_s] | --release")
+        sys.exit(1)
+    name = args_[0]
+    if "--release" in args_:
+        _lease_release(name)
+        print(f"[lease] {name} released")
+        return
+    ttl = next((int(a) for a in args_[1:] if a.isdigit()), 900)
+    if _lease_acquire(name, ttl):
+        print(f"[lease] {name} acquired {ttl}s (pid{os.getpid()})")
+    else:
+        d = json.loads((LEASES / f"{name}.lease")
+                       .read_text(encoding="utf-8"))
+        print(f"[lease] {name} HELD by {d.get('by')} "
+              f"({int(d['exp'] - time.time())}s left)")
+        sys.exit(1)
 
 
 def _fold_preregs():
@@ -1648,6 +1690,8 @@ def main():
         cmd_backup()
     elif cmd == "preregs":
         cmd_preregs(args[1:])
+    elif cmd == "lease":
+        cmd_lease(args[1:])
     elif cmd == "rescue":
         if len(args) < 2:
             print("usage: station rescue <repo>")

@@ -233,6 +233,31 @@ class PreregTests(unittest.TestCase):
             station.PREREGS, station.SPINE = _p, _s
 
 
+class LeaseTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile as tf
+        self._leases = station.LEASES
+        station.LEASES = Path(tf.mkdtemp()) / "leases"
+
+    def tearDown(self):
+        station.LEASES = self._leases
+
+    def test_lease_lifecycle_and_expiry_takeover(self):
+        self.assertTrue(station._lease_acquire("x", 900))
+        # same pid re-acquires (reentrant by design)
+        self.assertTrue(station._lease_acquire("x", 900))
+        # a live foreign holder blocks
+        (station.LEASES / "y.lease").write_text(json.dumps(
+            {"pid": -1, "exp": 9e12, "by": "other"}), encoding="utf-8")
+        self.assertFalse(station._lease_acquire("y", 900))
+        # an EXPIRED foreign holder is taken over — dead holders never wedge
+        (station.LEASES / "z.lease").write_text(json.dumps(
+            {"pid": -1, "exp": 0, "by": "dead"}), encoding="utf-8")
+        self.assertTrue(station._lease_acquire("z", 900))
+        station._lease_release("x")
+        self.assertTrue(station._lease_acquire("x", 900))
+
+
 class PulseSpeakerTests(unittest.TestCase):
     """The autonomic speakers (turns 11 + 35): wrong dedupe = spine spam
     or silenced transitions; both corrupt the record's signal."""
