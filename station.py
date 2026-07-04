@@ -192,6 +192,14 @@ def _repo_line(name: str, path: str) -> str:
     untracked = sum(1 for ln in lines if ln.startswith("??"))
     mark = "" if dirty == 0 else f"*{dirty}mod"
     unt = "" if untracked == 0 else f"+{untracked}unt"
+    # public-face proprioception (turn 47): after the 2026-07-04 publish,
+    # local commits that never reach origin let the public repo silently
+    # lag the working truth. Only meaningful when a remote exists; local
+    # git ops (no network) so a dead remote never stalls a wake.
+    sync = ""
+    _, ahead = _run("git rev-list --count @{upstream}..HEAD", path)
+    if ahead.strip().isdigit() and int(ahead.strip()) > 0:
+        sync = f" ^{ahead.strip()}unpushed"
     if untracked:
         # honest alarm grading (turn 39): untracked-with-offsite-snapshot is
         # protected dirt, not at-risk dirt. Freshness matters: a snapshot
@@ -209,7 +217,7 @@ def _repo_line(name: str, path: str) -> str:
                         pass
             unt += ("(rescued)" if znew >= newest
                     else f"(rescue-STALE {zips[-1].name[-14:-4]})")
-    return f"{name} {head}{mark}{unt}"
+    return f"{name} {head}{mark}{unt}{sync}"
 
 
 def _claims_line(claims_path: str) -> str:
