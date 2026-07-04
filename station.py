@@ -1699,7 +1699,11 @@ def cmd_organs(args_: list[str], path: Path | None = None):
     verbs = set(re.findall(r'\bcmd == "(\w+)"', src)) | {"wake"}
     entries = [json.loads(ln) for ln in
                p.read_text(encoding="utf-8-sig").splitlines() if ln.strip()]
+    # append-only closure: a later entry may carry closes=[{turn,match}];
+    # an open item is live unless some closure's match is a substring of it
+    closures = [c for e in entries for c in (e.get("closes") or [])]
     verd: dict[str, int] = {}
+    closed_n = 0
     turns, ok_n, miss_n, kills, opens, lines = [], 0, 0, 0, [], []
     for e in entries:
         t, tgt = e.get("turn", "?"), e.get("target", "-")
@@ -1713,7 +1717,12 @@ def cmd_organs(args_: list[str], path: Path | None = None):
         if e.get("kill"):
             kills += 1
         if e.get("open"):
-            opens.append((t, str(e["open"])))
+            txt = str(e["open"])
+            if any(c.get("turn") == t and c.get("match") and
+                   str(c["match"]) in txt for c in closures):
+                closed_n += 1
+            else:
+                opens.append((t, txt))
         if mode == "kill":
             if e.get("kill"):
                 lines.append(f"T{t} {tgt} {v} | {e['kill']}")
@@ -1728,7 +1737,8 @@ def cmd_organs(args_: list[str], path: Path | None = None):
     lo_hi = f"{min(turns)}-{max(turns)}" if turns else "?"
     vs = " ".join(f"{k}={n}" for k, n in sorted(verd.items()))
     print(f"ORGANS entries={len(entries)} turns={lo_hi} | {vs} | "
-          f"refs ok={ok_n} MISSING={miss_n} | kill={kills} open={len(opens)}")
+          f"refs ok={ok_n} MISSING={miss_n} | kill={kills} "
+          f"open={len(opens)} closed={closed_n}")
     for ln in lines:
         print(ln)
     if mode in ("act", "open"):
