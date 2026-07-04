@@ -238,6 +238,9 @@ def main():
     print(res["answer"])
     print(f"\n[hermes] calls={res['calls']} depth={res['depth']} "
           f"chunks={res['chunks']} bytes={res['bytes_read']:,} cost=$0")
+    print("[hermes] SCOPE: substance advisory, ATTRIBUTION UNRELIABLE — the "
+          "7B smears who-said-what (measured 2026-07-04, prompt law did not "
+          "bind). Verify speakers at source before any load-bearing use.")
 
 
 if __name__ == "__main__":
