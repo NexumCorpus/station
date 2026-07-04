@@ -44,6 +44,11 @@ Commands:
   station handoff [next...] write the molt artifact (re-derives standing facts)
   station vitals [hours]    metered-burn / certified-claim ratio + spine sample
   station quota [hours]     metered-quota window burn
+  station burn              roll completed UTC days' burn into burn-ledger.jsonl
+                            (the cumulative counter transcripts can't be) +
+                            cert markers; idempotent, pulse-driven
+  station eras              per-certification-era cumulative burn (SS15 decidable
+                            form: rising unbounded = sick, cert ratchets = alive)
   station wsl [user] <src>|-  run a script in WSL, bytes-not-quotes joint
   station regs              show the registry (repos, suites, logs)
 """
@@ -454,6 +459,7 @@ def cmd_backup():
         (HERE / "pulse-ledger.jsonl", dest / "station" / "pulse-ledger.jsonl"),
         (HERE / "llm-ledger.jsonl", dest / "station" / "llm-ledger.jsonl"),
         (HERE / "coggate-ledger.jsonl", dest / "station" / "coggate-ledger.jsonl"),
+        (HERE / "burn-ledger.jsonl", dest / "station" / "burn-ledger.jsonl"),
         (CURSORS / "witness.json", dest / "station" / "witness.json"),
         (Path("E:/atlas-station/CLAIMS.json"), dest / "atlas" / "CLAIMS.json"),
         (Path("E:/mission-runs/results.jsonl"), dest / "boundary" / "results.jsonl"),
@@ -871,12 +877,7 @@ def cmd_vitals(hours: float = 24.0):
             burn = int(ln.split("~")[1].split()[0].replace(",", ""))
     # certified claims (lifetime, from the atlas ledger — the denominator
     # is deliberately lifetime: certified capability never expires)
-    claims_path = _registry().get("claims", "")
-    certified = 0
-    if claims_path and Path(claims_path).is_file():
-        d = json.loads(Path(claims_path).read_text(encoding="utf-8-sig"))
-        arr = d if isinstance(d, list) else d.get("claims", [])
-        certified = sum(1 for c in arr if c.get("verified") is True)
+    certified = _certified_count()
     # free-layer volume in window
     cutoff = time.time() - hours * 3600
     free_calls = free_out = 0
@@ -901,6 +902,130 @@ def cmd_vitals(hours: float = 24.0):
     _spine_append("vitals", {"h": hours, "burn": burn,
                              "certified": certified, "ratio": ratio,
                              "free_calls": free_calls})
+
+
+# ---------------------------------------------------------- burn / eras -----
+BURN_LEDGER = HERE / "burn-ledger.jsonl"
+
+
+def _certified_count() -> int:
+    """Lifetime certified claims from the registered claims ledger."""
+    claims_path = _registry().get("claims", "")
+    if not (claims_path and Path(claims_path).is_file()):
+        return 0
+    d = json.loads(Path(claims_path).read_text(encoding="utf-8-sig"))
+    arr = d if isinstance(d, list) else d.get("claims", [])
+    return sum(1 for c in arr if c.get("verified") is True)
+
+
+def _weighted(u: dict) -> int:
+    """One weighting for all burn math (same formula as quota)."""
+    return (u.get("input_tokens", 0) + u.get("output_tokens", 0) * 5
+            + u.get("cache_creation_input_tokens", 0) // 4)
+
+
+def _burn_days(days: set) -> dict:
+    """Weighted burn per wanted UTC day, one transcript scan. Day is taken
+    from each record's own timestamp prefix — no epoch/tz math to rot."""
+    import calendar
+    out = {d: 0 for d in days}
+    lo = calendar.timegm(time.strptime(min(days), "%Y-%m-%d"))
+    root = Path.home() / ".claude" / "projects"
+    for f in root.rglob("*.jsonl"):
+        try:
+            if f.stat().st_mtime < lo:
+                continue
+            with f.open(encoding="utf-8", errors="replace") as fh:
+                for ln in fh:
+                    if '"usage"' not in ln:
+                        continue
+                    try:
+                        rec = json.loads(ln)
+                    except json.JSONDecodeError:
+                        continue
+                    day = (rec.get("timestamp") or "")[:10]
+                    if day in out:
+                        out[day] += _weighted(
+                            (rec.get("message") or {}).get("usage") or {})
+        except OSError:
+            continue
+    return out
+
+
+def cmd_burn():
+    """The persistent cumulative burn counter (THINKING/vital-sign-metric.md
+    probe 1 answer: transcripts retain ~30 days, no lifetime counter exists —
+    so the station keeps its own). Appends each COMPLETED UTC day's weighted
+    burn once (floor, not exact: cleaned transcripts undercount), plus a cert
+    marker whenever lifetime-certified changes. Idempotent; pulse-driven."""
+    import datetime as _dt
+    have, last_cert = set(), None
+    if BURN_LEDGER.is_file():
+        for ln in BURN_LEDGER.read_text(encoding="utf-8-sig").splitlines():
+            if not ln.strip():
+                continue
+            r = json.loads(ln)
+            if r.get("kind") == "day":
+                have.add(r["day"])
+            elif r.get("kind") == "cert":
+                last_cert = r["certified"]
+    today = _now()[:10]
+    t0 = _dt.date.fromisoformat(today)
+    wanted = {(t0 - _dt.timedelta(days=k)).isoformat()
+              for k in range(1, 29)} - have
+    added = []
+    if wanted:
+        burns = _burn_days(wanted)
+        with BURN_LEDGER.open("a", encoding="utf-8") as f:
+            for d in sorted(wanted):
+                f.write(json.dumps({"kind": "day", "day": d,
+                                    "burn": burns[d], "t": _now()}) + "\n")
+                added.append((d, burns[d]))
+    certified = _certified_count()
+    if certified != last_cert:
+        with BURN_LEDGER.open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"kind": "cert", "certified": certified,
+                                "day": today, "t": _now()}) + "\n")
+        print(f"cert-marker: certified={certified} (was {last_cert})")
+    tail = " ".join(f"{d}~{b:,}" for d, b in added[-7:])
+    print(f"BURN-LEDGER days={len(have) + len(added)} added={len(added)}"
+          + (f" | {tail}" if tail else ""))
+
+
+def cmd_eras():
+    """SS15 in decidable form: cumulative metered burn per certification era.
+    An era = the days between cert markers. Sickness signature = the open
+    era's burn rising past every closed era with no cert in sight; a cert
+    ratchets the counter. Reads burn-ledger; open era adds today's partial
+    live. Day-granular (pulse appends daily) — boundaries are honest +-1d."""
+    if not BURN_LEDGER.is_file():
+        print("(no burn ledger; run station burn first)")
+        return
+    eras, cur = [], {"burn": 0, "days": 0, "start": None, "end": None}
+    for ln in BURN_LEDGER.read_text(encoding="utf-8-sig").splitlines():
+        if not ln.strip():
+            continue
+        r = json.loads(ln)
+        if r.get("kind") == "day":
+            cur["burn"] += r["burn"]
+            cur["days"] += 1
+            cur["start"] = cur["start"] or r["day"]
+            cur["end"] = r["day"]
+        elif r.get("kind") == "cert":
+            if cur["days"]:
+                eras.append({**cur, "certified": r["certified"]})
+            cur = {"burn": 0, "days": 0, "start": None, "end": None}
+    today = _now()[:10]
+    live = _burn_days({today})[today]
+    for i, e in enumerate(eras):
+        print(f"era {i} {e['start']}..{e['end']} days={e['days']} "
+              f"burn~{e['burn']:,} -> cert #{e['certified']}")
+    print(f"era {len(eras)} OPEN {cur['start'] or today}.. days={cur['days']}"
+          f" burn~{cur['burn'] + live:,} (incl today-partial ~{live:,})")
+    if eras:
+        worst = max(e["burn"] for e in eras)
+        state = "OK" if cur["burn"] + live <= worst else "RISING-PAST-WORST"
+        print(f"verdict: open-era vs worst-closed({worst:,}): {state}")
 
 
 # ----------------------------------------------------------------- map ------
@@ -1110,6 +1235,10 @@ def main():
         cmd_quota(float(args[1]) if len(args) > 1 else 5.0)
     elif cmd == "vitals":
         cmd_vitals(float(args[1]) if len(args) > 1 else 24.0)
+    elif cmd == "burn":
+        cmd_burn()
+    elif cmd == "eras":
+        cmd_eras()
     elif cmd == "handoff":
         cmd_handoff(" ".join(args[1:]))
     elif cmd == "will":

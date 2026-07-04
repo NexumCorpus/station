@@ -254,6 +254,9 @@ def main():
     # vitals sample first: the section-15 trend needs a time series nobody
     # has to remember to take (8 samples/day; ~2s; spine 'vitals' events)
     run([PY, str(HERE / "station.py"), "vitals", "24"], HERE, 300)
+    # daily burn rollup + cert markers (no-op unless a UTC day completed or
+    # certified moved; feeds station eras — the SS15 decidable form)
+    run([PY, str(HERE / "station.py"), "burn"], HERE, 300)
     run([PY, str(HERE / "station.py"), "backup"], HERE, 900)
     note(f"PULSE {beat['action']}")
     jnote("beat-end", action=beat["action"])

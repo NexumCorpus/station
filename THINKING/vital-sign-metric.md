@@ -30,13 +30,19 @@ snapshots, integration across samples double-counts overlapping windows.
   the wrong incentive, §15 explicitly expects numerator-heavy eras.
 
 ## Open probes (cheapest-decisive first)
-- [ ] does the Claude quota store expose a lifetime/cumulative counter
-      (station quota source)? If yes, era-accounting is one subtraction.
-- [ ] else: derive cumulative burn from the 8/day samples via
-      non-overlapping 24h windows (1 sample/day at fixed hour) — loses
-      resolution, gains correctness.
-- [ ] median-of-era vs median-of-prior-era on the existing ratio: does it
-      survive the activity-confound objection for QUIET-era pairs at least?
+- [x] lifetime counter? ANSWERED 2026-07-04 (turn 23): NO — the only store is
+      session transcripts (~30d retention). So the station keeps its own:
+      `station burn` rolls each completed UTC day into burn-ledger.jsonl
+      (witnessed, backed up, pulse-driven) + cert markers when
+      lifetime-certified moves. Backfill floor: 523,090,100 weighted / 28d.
+- [x] non-overlapping windows? SUBSUMED by the day rollup (exact per-day
+      sums from record timestamps, not window samples).
+- [ ] median-of-era comparison: NOW COMPUTABLE once >=2 closed eras exist
+      (`station eras` prints per-era burn + an OK/RISING-PAST-WORST verdict
+      against worst-closed). Era 0 is a lump (boundaries only exist forward).
+- [ ] arm the drift assertion on the verdict line only after >=2 closed
+      eras — arming on the era-0 lump would be theater (one giant
+      denominator that everything passes against).
 
 ## Constraints & invariants discovered
 - Any metric must not punish build eras (§15 text) nor reward idleness
@@ -51,3 +57,8 @@ snapshots, integration across samples double-counts overlapping windows.
   a vitals-trend drift assertion; two hypotheses killed before build — the
   assertion was NOT built precisely because it would have been theater.
   Ledger opened instead (this file). Next instance: start at Open probes.
+- 2026-07-04 (turn 23): probes 1+2 closed by build — station burn/eras +
+  burn-ledger.jsonl (witnessed at birth, in backup, wired into pulse beat
+  step 7). The metric is now DECIDABLE going forward; era 0 lumps history.
+  Next instance: after the next certification closes era 1, evaluate the
+  verdict line against a real era pair, then consider arming drift.
