@@ -247,6 +247,11 @@ def main():
                 beat["wall"] = tier
                 break
         beat["action"] = f"wave-topup counts={scored_counts()}"
+        # the beat that MAKES news speaks it (turn 40): without this, a
+        # count-moving topup is only uttered by the NEXT beat, 3h later —
+        # verified live when T2 6->8 scored mid-beat and the spine's last
+        # counts fact sat stale until recheck flagged it
+        say_counts(scored_counts())
     elif not incomplete and not VERDICT.exists():
         # 3 — the registered analysis fires itself the moment n is reached
         code, out = run([PY, str(MISSION / "analyze_w2.py")], MISSION, 600)
