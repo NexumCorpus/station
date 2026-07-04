@@ -48,6 +48,10 @@ Commands:
   station drift             run executable cross-reference assertions (exit 1 = rot)
   station witness           notarize append-only ledgers; ALARM on rewrites
   station backup            mirror journal/spine/ledgers to E:/continuity
+  station rescue <repo>     offsite-snapshot a repo's UNTRACKED files (paid
+                            work git does not protect); non-destructive, the
+                            repo is never touched - committing stays the
+                            owner's call
   station pin <file>        mint [[pin:path@sha16]] for a load-bearing pointer
   station handoff [next...] write the molt artifact (re-derives standing facts)
   station molt [next...]    the whole molt seal in one call: handoff +
@@ -658,6 +662,43 @@ def cmd_handoff(next_actions: str = ""):
     print(f"[handoff] -> {out}")
     print("[handoff] molt checklist: journal current? in-flight work "
           "log-recoverable? then /clear is LOSSLESS.")
+
+
+def cmd_rescue(repo: str):
+    """Offsite-snapshot a repo's UNTRACKED files into the continuity mirror
+    (private remote). Untracked = the one class of paid work that neither
+    git history nor station backup protects; 41 research probes (Eden,
+    provenance-test, cross-lab) sat single-copy for 2 weeks before this
+    existed. Non-destructive by design: never touches the repo's git."""
+    import zipfile
+    path = _registry().get("repos", {}).get(repo)
+    if not path:
+        print(f"unknown repo {repo}; known: "
+              f"{', '.join(_registry().get('repos', {}))}")
+        sys.exit(1)
+    _, out = _run("git ls-files --others --exclude-standard", path, 120)
+    files = [f for f in out.splitlines() if f.strip()]
+    if not files:
+        print(f"{repo}: no untracked files — nothing to rescue")
+        return
+    dest = Path("E:/continuity") / "rescue"
+    dest.mkdir(parents=True, exist_ok=True)
+    zp = dest / f"{repo}-{_now()[:10]}.zip"
+    n = 0
+    with zipfile.ZipFile(zp, "w", zipfile.ZIP_DEFLATED) as z:
+        for rel in files:
+            src = Path(path) / rel
+            if src.is_file():
+                z.write(src, rel)
+                n += 1
+    _run("git add -A", "E:/continuity", 60)
+    _run(f'git commit -m "rescue {repo}: {n} untracked files"',
+         "E:/continuity", 60)
+    _run("git push", "E:/continuity", 300)
+    _spine_append("rescue", {"repo": repo, "files": n, "zip": zp.name,
+                             "bytes": zp.stat().st_size})
+    print(f"[rescue] {repo}: {n} untracked files -> {zp} "
+          f"({zp.stat().st_size:,}B) committed+pushed")
 
 
 def cmd_molt(next_actions: str = ""):
@@ -1411,6 +1452,11 @@ def main():
         cmd_witness()
     elif cmd == "backup":
         cmd_backup()
+    elif cmd == "rescue":
+        if len(args) < 2:
+            print("usage: station rescue <repo>")
+            sys.exit(1)
+        cmd_rescue(args[1])
     elif cmd == "log":
         if len(args) < 2 or args[1].startswith("-"):
             print("usage: station log <name> [--tail N | --full]")
