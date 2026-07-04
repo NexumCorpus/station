@@ -51,6 +51,10 @@ from pathlib import Path
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
+# stdin: PS5.1 pipelines prepend a UTF-8 BOM; utf-8-sig eats it silently
+# (same disease as the registry-BOM cure, applied at the pipe joint).
+if hasattr(sys.stdin, "reconfigure"):
+    sys.stdin.reconfigure(encoding="utf-8-sig")
 
 HERE = Path(__file__).resolve().parent
 REG = HERE / "station.json"
