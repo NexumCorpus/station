@@ -1,23 +1,62 @@
 # CAPSULE — station (dense agent briefing)
 
-IDENTITY: wake-and-verify spine for the E:\ estate. Stdlib-only python, on
-user PATH (`station`; this-session shells: python E:\station\station.py).
-Registry station.json = same trust domain as code (repos/suites/logs).
+IDENTITY: wake-and-verify spine for the E:\ estate. Stdlib-only python.
+Invoke: `station` (git-bash shim ~/bin/station, or station.cmd on PATH), else
+`python E:\station\station.py`. Registry station.json = same trust domain as
+code (repos/suites/logs/witness).
 
-COMMANDS:
-  wake                     estate digest: repos+dirt, claims (atlas
-                           CLAIMS.json), procs, log unread-bytes, spine tail
+COMMANDS (wake/verify):
+  wake                     estate digest: repos+dirt, claims, procs, eras
+                           verdict, THINKING index, log unread-bytes, WILL,
+                           spine tail
   suites [name] [--force]  all verification suites -> verdict lines; verdict
-                           CACHE by tree-hash (identical tree = cached PASS,
-                           FAIL never cached); typo'd name = exit 1
-  log <name> [--tail N]    CURSOR read: only new bytes since last read
-  tally <jsonl> [field]    dense per-group stats of any ledger
-  map <file.py>            AST outline (defs/classes + lines) -> surgical Reads
-  note <text> / spine [N]  append-only cross-instance telegraph
+                           CACHE by tree-hash (FAIL never cached); typo'd
+                           name = exit 1
+  drift / witness          executable cross-ref assertions / append-only
+                           notary (ALARM on history rewrite)
+  regs                     dump the registry
 
-FILES: spine.jsonl (event ledger), cursors/ (offsets + suites.cache.json).
-DESIGN: stigmergy (state in world), cursors (never pay twice for bytes),
-  spine (one nervous system), dense wire (one line per fact).
-INVARIANTS: suites empty-run or unknown-name must exit 1 (false-PASS was a
-  live bug, fixed); registry read utf-8-sig; cursor writes atomic.
-PROVENANCE: 7-agent cold audit at founding (38 findings, 3 blockers fixed).
+COMMANDS (read cheaply):
+  log <name> [--tail N]    CURSOR read: only new bytes; glob paths resolve
+                           newest file w/ per-file cursor (digest log)
+  tally <jsonl> [field]    dense per-group stats of any ledger
+  map <file.py>            AST outline -> surgical Reads
+  spine [N] [match]        last N events (filtered; never diagnose from tails)
+  quota [h] / vitals [h]   metered-burn estimate / SS15 ratio + spine sample
+  burn / eras              daily burn rollup ledger / per-certification-era
+                           cumulative burn + OK/RISING-PAST-WORST verdict
+
+COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
+  note <text>              telegraph (figures trigger a say-nudge)
+  say "<claim>" --cmd "<route>" [--expect f]  provable speech: route runs AT
+                           WRITE; false claim lands as 'refuted' never fact;
+                           --cmd - reads route from stdin (quoting-proof)
+  recheck [N] / retire "<m>"  re-derive last N facts (STALE -> deduped spine
+                           alarm; pulse does this 8x/day) / expire moment-facts
+  seal <ledger.jsonl>      clock-stamped attributed append (stdin JSON; typed
+                           't' always discarded — never hand-append ledgers)
+  errata [add cls what paid guard]  self-error ledger + live distribution
+  cure "<fragment>"        grimoire lookup FIRST on any error
+  pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
+
+COMMANDS (lifecycle):
+  will <intent>|done       testament: intent-at-death, wake-surfaced
+  handoff [next] / molt [next]  molt artifact (facts re-derived at seam) /
+                           the whole seal: handoff+will-done+backup in 1 call
+  backup / rescue <repo>   mirror ledgers+journal offsite / snapshot a repo's
+                           UNTRACKED files offsite (non-destructive)
+
+COMMANDS (free layer + hand):
+  llm [model] "<p>"|-      local ollama call ($0; None = down, never empty)
+  hand "<task>"|take|status  stigmergic tasking of the jailed WSL agent
+  wsl [user] <src>|-       run script in WSL, bytes-not-quotes joint
+
+FILES: spine.jsonl (events), burn-ledger.jsonl (SS15 counter), spiral.jsonl
+  (turn ledger), errata.jsonl, grimoire.jsonl, drift.jsonl, cursors/,
+  THINKING/ (open reasoning ledgers), plays/, templates/, checks/.
+DESIGN: stigmergy, cursors (never pay twice), one spine, dense wire.
+INVARIANTS: suites unknown-name exits 1; registries read utf-8-sig; ledger
+  appends locked (turn 33: plain 'a' lost 1553/4000 under contention);
+  witnessed ledgers LF-pinned via .gitattributes.
+PROVENANCE: 7-agent cold audit at founding; suite tests_station.py (13);
+  spiral ledger = the change history with measures.
