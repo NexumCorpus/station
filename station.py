@@ -763,18 +763,30 @@ def cmd_vitals(hours: float = 24.0):
 
 # ----------------------------------------------------------------- map ------
 def cmd_map(path: str):
-    """AST outline of a python file: one line per def/class with its line
-    number — so Reads become surgical offsets, never whole files."""
-    import ast
+    """Outline of a file so Reads become surgical offsets, never whole
+    files. .py -> AST (def/class per line); .md/.markdown -> heading tree
+    (spiral turn 1: the architecture ledger alone is 300+ lines and every
+    era reads it — an outline costs ~20)."""
     p = Path(path)
+    text = p.read_text(encoding="utf-8-sig", errors="replace")
+    lines = text.splitlines()
+    if p.suffix.lower() in (".md", ".markdown"):
+        print(f"map {path} {len(lines)}L")
+        fence = False
+        for i, ln in enumerate(lines, 1):
+            if ln.lstrip().startswith("```"):
+                fence = not fence
+            if not fence and ln.startswith("#"):
+                level = len(ln) - len(ln.lstrip("#"))
+                print(f"  L{i:<5d} {'  ' * (level - 1)}{ln.strip('# ')[:70]}")
+        return
+    import ast
     try:
-        tree = ast.parse(p.read_text(encoding="utf-8-sig", errors="replace"))
-    except (OSError, SyntaxError) as e:
+        tree = ast.parse(text)
+    except SyntaxError as e:
         print(f"(unmappable: {e})")
         sys.exit(1)
-    n_lines = len(p.read_text(encoding="utf-8-sig", errors="replace")
-                  .splitlines())
-    print(f"map {path} {n_lines}L")
+    print(f"map {path} {len(lines)}L")
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             args = ", ".join(a.arg for a in node.args.args)
