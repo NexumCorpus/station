@@ -1,4 +1,4 @@
-"""Drift check: every SPOOR pin ([[pin:PATH@SHA16]]) in registered-repo
+﻿"""Drift check: every SPOOR pin ([[pin:PATH@SHA16]]) in registered-repo
 markdown resolves and its hash matches. A broken pin = a load-bearing
 pointer whose claim rotted (the 24601 index-copy failure class, made
 structurally detectable)."""
@@ -31,6 +31,6 @@ for repo in REG.get("repos", {}).values():
             if actual != sha:
                 bad.append(f"{md.name}->{path}:STALE({actual})")
 
-print("OK" if not bad else "BROKEN-PINS:" + str(bad[:5]),
+print("CHECK-OK" if not bad else "ROTTED-PINS:" + str(bad[:5]),
       f"({scanned} pins scanned)")
 sys.exit(0 if not bad else 1)

@@ -34,6 +34,17 @@ Commands:
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
+  station tally <jsonl> [field]   dense per-group ledger stats
+  station map <file>        AST outline; Read exact offsets, never whole files
+  station cure "<fragment>" grimoire lookup FIRST on any error
+  station drift             run executable cross-reference assertions (exit 1 = rot)
+  station witness           notarize append-only ledgers; ALARM on rewrites
+  station backup            mirror journal/spine/ledgers to E:/continuity
+  station pin <file>        mint [[pin:path@sha16]] for a load-bearing pointer
+  station handoff [next...] write the molt artifact (re-derives standing facts)
+  station vitals [hours]    metered-burn / certified-claim ratio + spine sample
+  station quota [hours]     metered-quota window burn
+  station wsl [user] <src>|-  run a script in WSL, bytes-not-quotes joint
   station regs              show the registry (repos, suites, logs)
 """
 from __future__ import annotations

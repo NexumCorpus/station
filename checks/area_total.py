@@ -1,4 +1,4 @@
-"""Drift check: every probe check name in every wave-2 task maps to a
+﻿"""Drift check: every probe check name in every wave-2 task maps to a
 correctness area (the self-report instrument's totality dependency)."""
 import importlib.util
 import sys
@@ -29,4 +29,4 @@ for td in ("task_t2", "task_t3", "task_t4"):
     bad += [f"{td}:{n}" for n in names
             if _probe_area(n, cfg["areas"]) is None]
 
-print("OK" if not bad else "UNMAPPED:" + str(bad[:5]))
+print("CHECK-OK" if not bad else "UNMAPPED:" + str(bad[:5]))

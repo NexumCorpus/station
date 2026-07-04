@@ -1,6 +1,6 @@
-"""Drift check: the pulse must leave a PULSE note within 5h (3h schedule
+﻿"""Drift check: the pulse must leave a PULSE note within 5h (3h schedule
 + 2h grace). Two beats died silently with 0xC000013A on 2026-07-04 and
-nothing in the estate said so — a heart that can stop silently isn't a
+nothing in the estate said so â€” a heart that can stop silently isn't a
 heart. FAIL here = investigate schtasks StationPulse Last Result first."""
 import json
 import pathlib
@@ -21,4 +21,4 @@ else:
     t = time.mktime(time.strptime(last[:19], "%Y-%m-%dT%H:%M:%S"))
     t -= time.timezone if not time.daylight else time.altzone
     age_h = (time.time() - t) / 3600
-    print("OK" if age_h <= 5 else f"FLATLINE {age_h:.1f}h since last beat")
+    print("CHECK-OK" if age_h <= 5 else f"FLATLINE {age_h:.1f}h since last beat")
