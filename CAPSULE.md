@@ -25,6 +25,9 @@ COMMANDS (read cheaply):
   quota [h] / vitals [h]   metered-burn estimate / SS15 ratio + spine sample
   burn / eras              daily burn rollup ledger / per-certification-era
                            cumulative burn + OK/RISING-PAST-WORST verdict
+  organs [--all|--kill|--open]  spiral-turn organ map: refs existence-checked
+                           (exit 1 = rot); --kill = falsifier corpus for
+                           audits; --open = parked items
 
 COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
   note <text>              telegraph (figures trigger a say-nudge)

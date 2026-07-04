@@ -233,6 +233,57 @@ class PreregTests(unittest.TestCase):
             station.PREREGS, station.SPINE = _p, _s
 
 
+class OrganTests(unittest.TestCase):
+    """station organs (spiral turn 51): the ledger read as a registry."""
+
+    def setUp(self):
+        import tempfile as tf
+        self.tmp = Path(tf.mkdtemp())
+        self.ledger = self.tmp / "spiral.jsonl"
+        self.alive = self.tmp / "alive.txt"
+        self.alive.write_text("x", encoding="utf-8")
+        rows = [
+            {"turn": 1, "target": "crystal", "verdict": "GAIN",
+             "built": f"a thing at {self.alive} plus station wake",
+             "kill": "if the thing rots"},
+            {"turn": 2, "target": "efficiency", "verdict": "GAIN",
+             "built": f"gone artifact {self.tmp / 'missing.py'}",
+             "open": "parked verification"},
+        ]
+        with self.ledger.open("w", encoding="utf-8") as f:
+            for r in rows:
+                f.write(json.dumps(r) + "\n")
+
+    def _run(self, args):
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            with self.assertRaises(SystemExit) as cm:
+                station.cmd_organs(args, path=self.ledger)
+        return cm.exception.code, buf.getvalue()
+
+    def test_missing_ref_flagged_and_exit1(self):
+        code, out = self._run([])
+        self.assertEqual(code, 1)
+        self.assertIn("ORGANS entries=2", out)
+        self.assertIn("MISSING:", out)
+        self.assertIn("missing.py", out)
+        self.assertNotIn("T1 ", out)          # healthy organ hidden by default
+        self.assertIn("OPEN | parked verification", out)
+
+    def test_all_lists_healthy_organs_too(self):
+        code, out = self._run(["--all"])
+        self.assertEqual(code, 1)             # ledger still has one MISSING
+        self.assertIn("refs=2/2", out)        # path + station:wake both ok
+
+    def test_kill_mode_emits_falsifier_corpus_exit0(self):
+        code, out = self._run(["--kill"])
+        self.assertEqual(code, 0)
+        self.assertIn("if the thing rots", out)
+        self.assertNotIn("MISSING:", out)     # no per-row flags in kill mode
+
+
 class LeaseTests(unittest.TestCase):
     def setUp(self):
         import tempfile as tf

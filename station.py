@@ -69,6 +69,9 @@ Commands:
                             cert markers; idempotent, pulse-driven
   station eras              per-certification-era cumulative burn (SS15 decidable
                             form: rising unbounded = sick, cert ratchets = alive)
+  station organs [--all|--kill|--open]  the spiral ledger as a living organ
+                            registry: artifact refs existence-checked (exit 1 =
+                            rot), kill conditions + open items surfaced
   station wsl [user] <src>|-  run a script in WSL, bytes-not-quotes joint
   station regs              show the registry (repos, suites, logs)
 """
@@ -98,6 +101,7 @@ SPINE = HERE / "spine.jsonl"
 CURSORS = HERE / "cursors"
 WILL = HERE / "WILL.md"
 ERRATA = HERE / "errata.jsonl"
+SPIRAL = HERE / "spiral.jsonl"
 SUITE_TIMEOUT_S = 900
 
 
@@ -1653,6 +1657,86 @@ def cmd_regs():
     print(REG.read_text(encoding="utf-8"))
 
 
+# ------------------------------------------------------------- organs ------
+_ORGAN_PATH_RE = re.compile(r"[A-Za-z]:[\\/][\w\\/.\-]+")
+
+
+def _organ_refs(built: str, verbs: set[str]) -> tuple[list[str], list[str]]:
+    """Checkable references in a turn's built-prose: absolute estate paths
+    (existence) and `station <verb>` mentions (still dispatchable). Prose
+    that names nothing checkable yields ([], []) — that is a fact about the
+    entry, not a failure."""
+    ok, missing = [], []
+    for raw in _ORGAN_PATH_RE.findall(built):
+        p = raw.replace("\\", "/").rstrip(".,;:)\"'/")
+        if not p or len(p) < 4:
+            continue
+        (ok if Path(p).exists() else missing).append(p)
+    # Verb mentions confirm positively only: `station <word>` in prose is a
+    # ref iff <word> is dispatchable today ("the station now/itself/suite"
+    # flagged 4/4 false MISSING at birth — prose is not an invocation).
+    # Renamed-verb rot is the semantic audit's job, not this regex's.
+    for v in re.findall(r"\bstation ([a-z]+)\b", built):
+        if v in verbs:
+            ok.append(f"station:{v}")
+    return ok, missing
+
+
+def cmd_organs(args_: list[str], path: Path | None = None):
+    """Capstone map (spiral turn 51): the spiral ledger read as a living
+    organ registry instead of write-only memory. One line per turn with its
+    artifact refs existence-checked (MISSING = rot or unrecorded
+    retirement), kill conditions and open items surfaced. Default prints
+    the actionable subset; --all every organ; --kill the falsifier corpus
+    (audit feed); --open parked items. Exit 1 on any MISSING ref."""
+    p = path or SPIRAL
+    if not p.is_file():
+        print("(no spiral ledger)")
+        sys.exit(1)
+    mode = ("all" if "--all" in args_ else "kill" if "--kill" in args_
+            else "open" if "--open" in args_ else "act")
+    src = Path(__file__).read_text(encoding="utf-8")
+    verbs = set(re.findall(r'\bcmd == "(\w+)"', src)) | {"wake"}
+    entries = [json.loads(ln) for ln in
+               p.read_text(encoding="utf-8-sig").splitlines() if ln.strip()]
+    verd: dict[str, int] = {}
+    turns, ok_n, miss_n, kills, opens, lines = [], 0, 0, 0, [], []
+    for e in entries:
+        t, tgt = e.get("turn", "?"), e.get("target", "-")
+        v = e.get("verdict", "-")
+        verd[v] = verd.get(v, 0) + 1
+        if isinstance(t, int):
+            turns.append(t)
+        ok, missing = _organ_refs(str(e.get("built", "")), verbs)
+        ok_n += len(ok)
+        miss_n += len(missing)
+        if e.get("kill"):
+            kills += 1
+        if e.get("open"):
+            opens.append((t, str(e["open"])))
+        if mode == "kill":
+            if e.get("kill"):
+                lines.append(f"T{t} {tgt} {v} | {e['kill']}")
+            continue
+        if mode == "open":
+            continue
+        flag = f" MISSING:{','.join(missing)}" if missing else ""
+        row = (f"T{t:<3} {tgt:<10} {v:<7} refs={len(ok)}/{len(ok) + len(missing)}"
+               f"{flag} | {str(e.get('built', ''))[:70]}")
+        if mode == "all" or missing:
+            lines.append(row)
+    lo_hi = f"{min(turns)}-{max(turns)}" if turns else "?"
+    vs = " ".join(f"{k}={n}" for k, n in sorted(verd.items()))
+    print(f"ORGANS entries={len(entries)} turns={lo_hi} | {vs} | "
+          f"refs ok={ok_n} MISSING={miss_n} | kill={kills} open={len(opens)}")
+    for ln in lines:
+        print(ln)
+    if mode in ("act", "open"):
+        for t, o in opens:
+            print(f"T{t} OPEN | {o}")
+    sys.exit(1 if miss_n and mode in ("act", "all") else 0)
+
+
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help", "help"):
@@ -1680,6 +1764,8 @@ def main():
         cmd_burn()
     elif cmd == "eras":
         cmd_eras()
+    elif cmd == "organs":
+        cmd_organs(args[1:])
     elif cmd == "seal":
         if len(args) < 2:
             print("usage: station seal <ledger.jsonl>   (JSON object via stdin)")
