@@ -550,6 +550,34 @@ def cmd_llm(model: str, prompt: str):
     print(out if out is not None else "[llm] DOWN or errored (not an answer)")
 
 
+# ----------------------------------------------------------------- wsl ------
+def cmd_wsl(user: str, src: str):
+    """Run a script in WSL with ZERO inline quoting (spiral turn 2).
+
+    The PS->wsl.exe->bash stack ate 5 commands tonight (quote-splitting,
+    $PATH clobber, BOM x2, unicode escapes — all in the grimoire). The
+    structural kill: the script travels as BYTES (LF, no BOM) via \\\\wsl$,
+    then executes as a FILE. Nothing is ever composed inline again.
+
+      station wsl [user] <script-file>     run a script file
+      station wsl [user] -                 script from stdin"""
+    text = (sys.stdin.read() if src == "-" else
+            Path(src).read_text(encoding="utf-8-sig", errors="replace"))
+    tmp = Path(r"\\wsl$\Ubuntu\tmp\station_wsl.sh")
+    tmp.write_bytes(text.replace("\r\n", "\n").encode("utf-8"))
+    cmd = ["wsl", "-d", "Ubuntu"]
+    if user:
+        cmd += ["-u", user]
+    cmd += ["--", "bash", "/tmp/station_wsl.sh"]
+    p = subprocess.run(cmd, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=1800)
+    if p.stdout:
+        print(p.stdout, end="")
+    if p.stderr:
+        print(p.stderr, end="", file=sys.stderr)
+    sys.exit(p.returncode)
+
+
 # ---------------------------------------------------------------- hand ------
 HATCH = Path(r"\\wsl$\Ubuntu\hatch")
 
@@ -872,6 +900,10 @@ def main():
         cmd_will(" ".join(args[1:]))
     elif cmd == "hand":
         cmd_hand(args[1:])
+    elif cmd == "wsl":
+        rest = args[1:]
+        u = rest[0] if len(rest) == 2 else ""
+        cmd_wsl(u, rest[-1] if rest else "-")
     elif cmd == "llm":
         if len(args) < 2:
             print('usage: station llm [model] "<prompt>"|-   (- = stdin)')
