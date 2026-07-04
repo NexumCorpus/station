@@ -11,9 +11,14 @@ from pathlib import Path
 REG = json.loads(Path("E:/station/station.json").read_text(encoding="utf-8-sig"))
 PIN = re.compile(r"\[\[pin:([^@\]]+)@([0-9a-f]{16})\]\]")
 
+# the journal (auto-memory) carries the most rot-prone pointers of all:
+# it outlives every session and no repo suite ever touches it (turn 20)
+JOURNAL = Path.home() / ".claude" / "projects" / "E--" / "memory"
+
 bad = []
 scanned = 0
-for repo in REG.get("repos", {}).values():
+roots = list(REG.get("repos", {}).values()) + [str(JOURNAL)]
+for repo in roots:
     for md in Path(repo).rglob("*.md"):
         if "node_modules" in md.parts or "runs" in md.parts:
             continue
