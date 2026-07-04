@@ -955,6 +955,17 @@ def cmd_molt(next_actions: str = ""):
     if WILL.is_file():
         cmd_will("done")
     cmd_backup()
+    # public-face check (turn 49): a thread must not be shed leaving the
+    # working truth invisible to the world. Uses the turn-47 sensor; warns,
+    # never blocks (Law III) — pushing the operator's repos stays their call.
+    behind = []
+    for name, path in _registry().get("repos", {}).items():
+        _, ahead = _run("git rev-list --count @{upstream}..HEAD", path)
+        if ahead.strip().isdigit() and int(ahead.strip()) > 0:
+            behind.append(f"{name}(^{ahead.strip()})")
+    if behind:
+        print(f"[molt] UNPUSHED before /clear: {', '.join(behind)} — "
+              f"push if the public face should carry this session")
     print("[molt] sealed: handoff + will-done + backup in one call. Write "
           "the journal narrative, then /clear is lossless.")
 
