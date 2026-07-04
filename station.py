@@ -26,6 +26,9 @@ Commands:
                             hermes-agent (local model, $0); stigmergic —
                             drop food, walk away, collect later
   station llm [model] "<p>"|-  one free local-inference call
+  station errata [add ...]  self-error ledger: the agent's own misread/failure
+                            distribution (grimoire = world's lessons; errata =
+                            mine). Reflex: caught in a correction -> add it
   station regs              show the registry (repos, suites, logs)
 """
 from __future__ import annotations
@@ -49,6 +52,7 @@ REG = HERE / "station.json"
 SPINE = HERE / "spine.jsonl"
 CURSORS = HERE / "cursors"
 WILL = HERE / "WILL.md"
+ERRATA = HERE / "errata.jsonl"
 SUITE_TIMEOUT_S = 900
 
 
@@ -182,6 +186,18 @@ def cmd_wake():
     if "claims" in reg:
         lines.append(_claims_line(reg["claims"]))
     lines.append(_proc_counts())
+    if ERRATA.is_file():
+        try:
+            byc = {}
+            for ln in ERRATA.read_text(encoding="utf-8").splitlines():
+                if ln.strip():
+                    e = json.loads(ln)
+                    byc[e["cls"]] = byc.get(e["cls"], 0) + 1
+            top = max(byc.items(), key=lambda kv: kv[1])
+            lines.append(f"errata {sum(byc.values())} | top: {top[0]} "
+                         f"x{top[1]} -> station errata")
+        except (json.JSONDecodeError, KeyError):
+            pass                          # errata must never break a wake
     lines += _log_freshness(reg)
     if SPINE.is_file():
         events = SPINE.read_text(encoding="utf-8").splitlines()
@@ -458,6 +474,53 @@ def cmd_cure(query: str):
     for score, e in sorted(scored, key=lambda t: -t[0])[:3]:
         print(f"[{score}] {e['sig']}\n    CURE: {e['cure']}\n"
               f"    paid: {e['paid']}")
+
+
+# -------------------------------------------------------------- errata ------
+def cmd_errata(args_: list):
+    """Self-error ledger — the observability move turned inward (spiral turn
+    8). The grimoire holds what the world did to us; the errata holds what we
+    did to ourselves: misreads, false claims, corrections — classed, so the
+    wake instance sees its own live failure distribution instead of
+    re-deriving it from scattered spine notes. Standing prose ("trust
+    instruments") demonstrably does not hold under load; a one-line
+    distribution at wake is the cheapest layer that can.
+
+      station errata                          tally by class (top = today's
+                                              load-bearing discipline)
+      station errata add <cls> "<what>" ["<paid>"] ["<guard>"]
+                                              crystallize a correction the
+                                              same session it is paid for
+    """
+    if args_ and args_[0] == "add":
+        if len(args_) < 3:
+            print('usage: station errata add <class> "<what>" '
+                  '["<paid>"] ["<guard>"]')
+            sys.exit(1)
+        e = {"t": _now(), "cls": args_[1], "what": args_[2],
+             "paid": args_[3] if len(args_) > 3 else "",
+             "guard": args_[4] if len(args_) > 4 else ""}
+        with ERRATA.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(e) + "\n")
+        print(f"[errata] {e['cls']} recorded | guard: "
+              f"{e['guard'] or '(none yet — build one)'}")
+        return
+    if not ERRATA.is_file():
+        print("(errata empty — no self-errors on record; either young "
+              "or not looking)")
+        return
+    entries = [json.loads(ln) for ln in
+               ERRATA.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    by = {}
+    for e in entries:
+        by.setdefault(e["cls"], []).append(e)
+    print(f"ERRATA {len(entries)} self-errors, {len(by)} classes | "
+          f"top class = today's load-bearing discipline")
+    for cls, es in sorted(by.items(), key=lambda kv: -len(kv[1])):
+        guard = next((e["guard"] for e in reversed(es) if e.get("guard")),
+                     "(no guard built)")
+        print(f"  {cls:<22} x{len(es)} | guard: {guard}")
+        print(f"  {'':<22}      last: {es[-1]['what'][:100]}")
 
 
 # ------------------------------------------------------------- handoff ------
@@ -920,6 +983,8 @@ def main():
             cmd_llm(args[1], " ".join(args[2:]))
     elif cmd == "cure":
         cmd_cure(" ".join(args[1:]))
+    elif cmd == "errata":
+        cmd_errata(args[1:])
     elif cmd == "pin":
         cmd_pin(args[1])
     elif cmd == "drift":

@@ -52,7 +52,8 @@
   "E:/station/coggate-ledger.jsonl",
   "E:/station/llm-ledger.jsonl",
   "E:/station/spiral.jsonl",
-  "E:/station/pulse-ledger.jsonl"
+  "E:/station/pulse-ledger.jsonl",
+  "E:/station/errata.jsonl"
  ],
  "logs": {
   "pulse": "E:/station/pulse-ledger.jsonl",
