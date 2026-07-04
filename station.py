@@ -270,6 +270,44 @@ def _log_freshness(reg: dict) -> list[str]:
     return out
 
 
+def _thread_weight():
+    """Context proprioception (SS10.1: attention hygiene IS cognition — a
+    clean window is a smarter mind, so the organism must FEEL its window).
+    The newest session transcript's last usage record carries the live
+    context size: input + cache_read + cache_creation of the most recent
+    turn. Returns (tokens, transcript_age_min) or (None, None)."""
+    root = Path.home() / ".claude" / "projects"
+    newest, mt = None, 0.0
+    try:
+        for f in root.rglob("*.jsonl"):
+            m = f.stat().st_mtime
+            if m > mt:
+                newest, mt = f, m
+    except OSError:
+        return None, None
+    if not newest:
+        return None, None
+    try:
+        with newest.open("rb") as fh:
+            fh.seek(max(0, newest.stat().st_size - 262144))
+            tail = fh.read().decode("utf-8", errors="replace")
+        for ln in reversed(tail.splitlines()):
+            if '"usage"' not in ln:
+                continue
+            try:
+                u = (json.loads(ln).get("message") or {}).get("usage") or {}
+            except json.JSONDecodeError:
+                continue
+            ctx = (u.get("input_tokens", 0)
+                   + u.get("cache_read_input_tokens", 0)
+                   + u.get("cache_creation_input_tokens", 0))
+            if ctx:
+                return ctx, (time.time() - mt) / 60
+    except OSError:
+        pass
+    return None, None
+
+
 def cmd_wake():
     reg = _registry()
     # Instar = molt count + 1: the organism knows which shell it is wearing.
@@ -309,6 +347,18 @@ def cmd_wake():
                          f"worst~{worst:,} {state} -> station eras")
         except (json.JSONDecodeError, KeyError):
             pass                          # vitals must never break a wake
+    # context proprioception: the live thread's window weight. >60% of a
+    # 200k window = molt territory (SS10.1 — reasoning degrades through a
+    # stale mega-prefix long before the hard limit truncates it)
+    # Window size varies by model and is not observable from transcripts —
+    # report raw weight; the 150k advice threshold is a labeled heuristic
+    # (this session's own first reading was 308k and reasoning still held,
+    # so the flag is advice, not alarm).
+    ctx, age = _thread_weight()
+    if ctx:
+        flag = "" if ctx < 150_000 else " heavy - consider station molt"
+        lines.append(f"thread ~{ctx // 1000}k ctx (sampled {age:.0f}m ago)"
+                     f"{flag}")
     # open reasoning ledgers (external working memory): a THINKING file
     # nobody reads is shelf-paper — the wake IS the discovery surface
     think = sorted(p.stem for p in (HERE / "THINKING").glob("*.md"))
