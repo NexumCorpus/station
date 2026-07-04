@@ -987,6 +987,10 @@ def cmd_say(args_: list):
         cmd, expect = " ".join(rest[:j]), " ".join(rest[j + 1:])
     else:
         cmd, expect = " ".join(rest), ""
+    if cmd == "-":
+        # the joint crossed as bytes, never quotes (turn 2's law): a route
+        # piped via stdin dodges PS5.1 native-arg quote-stripping entirely
+        cmd = sys.stdin.read().strip()
     if not claim or not cmd:
         print("(say needs both a claim and a --cmd route)")
         sys.exit(1)
