@@ -197,14 +197,28 @@ def _proc_counts() -> str:
         if counts else "proc none-of-interest"
 
 
+def _resolve_log(name: str, path: str):
+    """Resolve a registered log to (file, cursor_file). Glob paths (e.g.
+    digests/*.md) resolve to the newest match by name, with a PER-FILE
+    cursor (name@file.offset) — a new day's file starts unread instead of
+    inheriting the old file's offset into wrong bytes."""
+    if "*" in path:
+        matches = sorted(Path(path).parent.glob(Path(path).name))
+        if not matches:
+            return None, None
+        p = matches[-1]
+        return p, CURSORS / f"{name}@{p.name}.offset"
+    return Path(path), CURSORS / f"{name}.offset"
+
+
 def _log_freshness(reg: dict) -> list[str]:
     out = []
     for name, path in reg.get("logs", {}).items():
-        p = Path(path)
-        if not p.is_file():
+        p, cur = _resolve_log(name, path)
+        if p is None or not p.is_file():
             continue
         age_min = (time.time() - p.stat().st_mtime) / 60
-        seen = _read_cursor(CURSORS / f"{name}.offset")
+        seen = _read_cursor(cur)
         unread = p.stat().st_size - seen
         if unread > 0 or age_min < 120:
             out.append(f"log {name} {p.stat().st_size}B "
@@ -1129,8 +1143,8 @@ def cmd_log(name: str, tail: int | None = None, full: bool = False):
     if not path:
         print(f"unknown log {name}; known: {', '.join(reg.get('logs', {}))}")
         sys.exit(1)
-    p = Path(path)
-    if not p.is_file():
+    p, cur = _resolve_log(name, path)
+    if p is None or not p.is_file():
         print(f"(missing: {path})")
         return
     data = p.read_bytes()
@@ -1142,7 +1156,6 @@ def cmd_log(name: str, tail: int | None = None, full: bool = False):
         print(data.decode("utf-8", errors="replace"))
         return
     CURSORS.mkdir(exist_ok=True)
-    cur = CURSORS / f"{name}.offset"
     seen = _read_cursor(cur)
     if seen > len(data):                        # log was truncated/rotated
         seen = 0

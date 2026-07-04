@@ -67,6 +67,7 @@
     "campaign": "E:/atlas-station/_rde_campaign.log",
     "f2f": "E:/atlas-station/docs/collab/f2f/transcript.md",
     "mission1": "E:/mission-runs/wave1.log",
-    "wave2": "E:/mission-runs/wave2.log"
+    "wave2": "E:/mission-runs/wave2.log",
+    "digest": "E:/station/digests/*.md"
   }
 }
