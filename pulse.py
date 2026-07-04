@@ -142,15 +142,25 @@ def say_counts(counts: dict):
          "--expect", json.dumps(counts)], HERE, 120)
 
 
+_sweep_probe = None                       # per-beat memo (turn 14): the
+                                          # branch chain asks 3x; the answer
+                                          # cannot legitimately change inside
+                                          # one decision, so probe once
+
+
 def sweep_already_running() -> bool:
+    global _sweep_probe
+    if _sweep_probe is not None:
+        return _sweep_probe
     code, out = run(["powershell", "-NoProfile", "-Command",
                      "(Get-CimInstance Win32_Process -Filter \"Name like "
                      "'%python%'\" | Where-Object { $_.CommandLine -match "
                      "'sweep_w2|sweep\\.py|autoloop' }).Count"], HERE, 120)
     try:
-        return int(out.strip().splitlines()[-1]) > 0
+        _sweep_probe = int(out.strip().splitlines()[-1]) > 0
     except (ValueError, IndexError):
-        return True                       # unsure -> don't double-dispatch
+        _sweep_probe = True               # unsure -> don't double-dispatch
+    return _sweep_probe
 
 
 def main():
