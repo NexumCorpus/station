@@ -22,6 +22,10 @@ Commands:
   station spine [N]         last N spine events (default 10)
   station will [intent|done]  testament: intent-at-death, rewritten at every
                             move boundary (interrupts are not graceful)
+  station hand "<task>"|take|status   the hatch: feed the jailed always-on
+                            hermes-agent (local model, $0); stigmergic —
+                            drop food, walk away, collect later
+  station llm [model] "<p>"|-  one free local-inference call
   station regs              show the registry (repos, suites, logs)
 """
 from __future__ import annotations
@@ -29,6 +33,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -191,6 +196,17 @@ def cmd_wake():
                        and not ln.startswith("#")), "")[:140]
         lines.append(f"WILL age={age_m}m (author died mid-move — verify vs "
                      f"dirt+spine) | {intent}")
+    try:
+        # touching \\wsl$ boots WSL if it is down -> systemd revives the
+        # forager: every wake also wakes the hand (circadian by design)
+        h = {d: len(list((HATCH / d).glob("*")))
+             for d in ("in", "claimed", "out")}
+        if any(h.values()):
+            lines.append(f"hatch in={h['in']} working={h['claimed']} "
+                         f"results={h['out']}"
+                         + (" -> station hand take" if h["out"] else ""))
+    except OSError:
+        pass
     print("\n".join(lines))
     _spine_append("wake", {"repos": len(reg.get("repos", {}))})
 
@@ -523,6 +539,64 @@ def cmd_llm(model: str, prompt: str):
     print(out if out is not None else "[llm] DOWN or errored (not an answer)")
 
 
+# ---------------------------------------------------------------- hand ------
+HATCH = Path(r"\\wsl$\Ubuntu\hatch")
+
+
+def cmd_hand(args_: list):
+    """The estate's standing hand — hermes-agent jailed in WSL, fed through
+    THE HATCH. Stigmergic, no API: drop a .task file in /hatch/in and walk
+    away; the forager (systemd, always-on) claims it by atomic mv, works it
+    on the LOCAL model (hermes3:8b, $0), leaves a .result in /hatch/out.
+    Nobody waits on anybody. WSL idles down when unused; every pulse beat
+    touches WSL, systemd revives the forager — the hand wakes when the
+    estate's heart beats.
+
+    Containment is filesystem, not sentences: user hermes has no sudo, no
+    docker, and /mnt/* is DENIED by the wsl.conf umask wall. The hatch is
+    the ONLY designed opening. Its reports are CLAIMS — verify load-bearing
+    ones estate-side.
+
+      station hand "<task>"    drop food (returns immediately)
+      station hand take        collect + print new results (archives them)
+      station hand status      hatch counts, one line"""
+    sub = args_[0] if args_ else ""
+    if sub == "status":
+        try:
+            i, c, o = (len(list((HATCH / d).glob("*")))
+                       for d in ("in", "claimed", "out"))
+            print(f"hatch in={i} working={c} results={o}"
+                  + (" -> station hand take" if o else ""))
+        except OSError:
+            print("hatch UNREACHABLE (WSL down — next pulse beat revives)")
+        return
+    if sub == "take":
+        arch = HERE / "hand-results"
+        arch.mkdir(exist_ok=True)
+        got = 0
+        for r in sorted(HATCH.glob("out/*.result")):
+            print(f"===== {r.name} =====")
+            print(r.read_text(encoding="utf-8", errors="replace"))
+            (arch / r.name).write_text(
+                r.read_text(encoding="utf-8", errors="replace"),
+                encoding="utf-8")
+            r.unlink()
+            got += 1
+        print(f"[hand] {got} result(s) taken -> {arch}" if got
+              else "[hand] nothing in the out-hatch")
+        return
+    task = " ".join(args_)
+    if not task:
+        print('usage: station hand "<task>" | take | status')
+        sys.exit(1)
+    slug = re.sub(r"[^a-z0-9]+", "-", task[:40].lower()).strip("-")
+    name = f"{time.strftime('%Y%m%d_%H%M%S', time.gmtime())}_{slug}.task"
+    (HATCH / "in" / name).write_text(task + "\n", encoding="utf-8",
+                                     newline="\n")
+    print(f"[hand] dropped {name} — forager will eat it; "
+          f"collect with: station hand take")
+
+
 # ---------------------------------------------------------------- will ------
 def cmd_will(text: str = ""):
     """The testament — intent AT DEATH, rewritten at every move boundary.
@@ -718,6 +792,8 @@ def main():
         cmd_handoff(" ".join(args[1:]))
     elif cmd == "will":
         cmd_will(" ".join(args[1:]))
+    elif cmd == "hand":
+        cmd_hand(args[1:])
     elif cmd == "llm":
         if len(args) < 2:
             print('usage: station llm [model] "<prompt>"|-   (- = stdin)')
