@@ -30,6 +30,7 @@ Usage: python pulse.py [--dry]     Schedule: schtasks (see register_pulse.ps1)
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import time
@@ -46,18 +47,46 @@ HUNT_CELLS = ["q2n14r2", "q3n8r1", "q2n13r2", "q3n7r1", "q2n12r2", "q3n6r1"]
 HUNT_MODEL = "ollama:qwen2.5-coder:7b"    # free local proposer ONLY
 PY = sys.executable
 DRY = "--dry" in sys.argv
+JLEDGER = HERE / "pulse-ledger.jsonl"
+BEAT_ID = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def jnote(step: str, **kw):
+    """Beat journal: one dense line per step, append-only. A beat killed
+    mid-flight (console close, timeout, crash) leaves its tail naming the
+    exact in-flight command — forensics in one cursor read instead of
+    schtasks/process/spine archaeology."""
+    rec = {"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "beat": BEAT_ID, "pid": os.getpid(), "step": step}
+    if DRY:
+        rec["dry"] = True
+    rec.update(kw)
+    try:
+        with JLEDGER.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rec) + "\n")
+    except OSError:
+        pass                              # journaling must never kill a beat
 
 
 def run(cmd: list, cwd: Path, timeout: int = 7200):
+    tail = " ".join(str(c) for c in cmd)[-160:]
+    jnote("run", cmd=tail)
     if DRY:
-        print("[dry]", " ".join(str(c) for c in cmd))
+        print("[dry]", tail)
+        jnote("ran", cmd=tail, exit=0, secs=0)
         return 0, ""
+    t0 = time.time()
     p = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True,
                        encoding="utf-8", errors="replace", timeout=timeout)
+    jnote("ran", cmd=tail, exit=p.returncode,
+          secs=round(time.time() - t0, 1))
     return p.returncode, (p.stdout or "") + (p.stderr or "")
 
 
 def note(txt: str):
+    if DRY:
+        print("[dry] note:", txt)
+        return
     subprocess.run([PY, str(HERE / "station.py"), "note", txt],
                    capture_output=True)
 
@@ -104,6 +133,7 @@ def sweep_already_running() -> bool:
 
 def main():
     beat = {"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    jnote("beat-start")
 
     # 1 — hygiene gate
     d_code, _ = run([PY, str(HERE / "station.py"), "drift"], HERE, 600)
@@ -111,6 +141,7 @@ def main():
     if d_code != 0 or w_code != 0:
         beat["action"] = f"HALTED-HYGIENE drift={d_code} witness={w_code}"
         note(f"PULSE {beat['action']} — estate NOT advanced; investigate")
+        jnote("beat-end", action=beat["action"])
         print(beat)
         return
 
@@ -174,6 +205,7 @@ def main():
         beat["action"] = f"demiurge-cycle exit={code} | {tail}"
     else:
         beat["action"] = "idle (work in flight or KILL present)"
+    jnote("action", action=beat["action"])
 
     # 6 — night mind: pre-digest new log bytes on the FREE model (advisory
     # candidates; wake cursors untouched, raw bytes remain the record).
@@ -185,6 +217,7 @@ def main():
     # 7 — survivability, every beat
     run([PY, str(HERE / "station.py"), "backup"], HERE, 900)
     note(f"PULSE {beat['action']}")
+    jnote("beat-end", action=beat["action"])
     print(beat)
 
 

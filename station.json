@@ -51,9 +51,11 @@
   "E:/demiurge/ledger.jsonl",
   "E:/station/coggate-ledger.jsonl",
   "E:/station/llm-ledger.jsonl",
-  "E:/station/spiral.jsonl"
+  "E:/station/spiral.jsonl",
+  "E:/station/pulse-ledger.jsonl"
  ],
  "logs": {
+  "pulse": "E:/station/pulse-ledger.jsonl",
   "shim": "E:/atlas-station/_shim.log.err",
   "campaign": "E:/atlas-station/_rde_campaign.log",
   "f2f": "E:/atlas-station/docs/collab/f2f/transcript.md",
