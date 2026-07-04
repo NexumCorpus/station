@@ -50,6 +50,8 @@ Commands:
   station backup            mirror journal/spine/ledgers to E:/continuity
   station pin <file>        mint [[pin:path@sha16]] for a load-bearing pointer
   station handoff [next...] write the molt artifact (re-derives standing facts)
+  station molt [next...]    the whole molt seal in one call: handoff +
+                            will-done + backup (journal narrative stays yours)
   station vitals [hours]    metered-burn / certified-claim ratio + spine sample
   station quota [hours]     metered-quota window burn
   station burn              roll completed UTC days' burn into burn-ledger.jsonl
@@ -656,6 +658,20 @@ def cmd_handoff(next_actions: str = ""):
     print(f"[handoff] -> {out}")
     print("[handoff] molt checklist: journal current? in-flight work "
           "log-recoverable? then /clear is LOSSLESS.")
+
+
+def cmd_molt(next_actions: str = ""):
+    """The molt, one call: handoff artifact (facts re-derived at the seam) +
+    testament closed + continuity mirrored. Was three verbs plus skill
+    prose plus remembering all of it at the exact moment budget is lowest —
+    the one moment recall is least reliable. The journal narrative stays
+    the author's duty: a machine cannot write what the session MEANT."""
+    cmd_handoff(next_actions)
+    if WILL.is_file():
+        cmd_will("done")
+    cmd_backup()
+    print("[molt] sealed: handoff + will-done + backup in one call. Write "
+          "the journal narrative, then /clear is lossless.")
 
 
 # ----------------------------------------------------------------- llm ------
@@ -1365,6 +1381,8 @@ def main():
         cmd_seal(args[1])
     elif cmd == "handoff":
         cmd_handoff(" ".join(args[1:]))
+    elif cmd == "molt":
+        cmd_molt(" ".join(args[1:]))
     elif cmd == "will":
         cmd_will(" ".join(args[1:]))
     elif cmd == "hand":
