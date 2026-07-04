@@ -40,6 +40,11 @@
    "name": "boundary",
    "cwd": "E:/boundary/mission1",
    "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest tests -q"
+  },
+  {
+   "name": "station",
+   "cwd": "E:/station",
+   "cmd": "python tests_station.py"
   }
  ],
  "witness": [

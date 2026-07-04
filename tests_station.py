@@ -1,0 +1,91 @@
+"""Suite for the station itself (spiral turn 15). The tool that verifies
+every other repo was the only load-bearing code with no suite of its own.
+Focus: the SPOOR machinery (say/refute/walk/recheck), attribution, errata —
+the newest organs, where regressions would corrupt records silently."""
+import json
+import os
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import station  # noqa: E402
+
+
+class StationTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self._spine, self._errata = station.SPINE, station.ERRATA
+        station.SPINE = self.tmp / "spine.jsonl"
+        station.ERRATA = self.tmp / "errata.jsonl"
+
+    def tearDown(self):
+        station.SPINE, station.ERRATA = self._spine, self._errata
+
+    def _spine_events(self):
+        return [json.loads(ln) for ln in
+                station.SPINE.read_text(encoding="utf-8").splitlines()]
+
+    def test_run_check_exit0_without_expect(self):
+        ok, code, _ = station._run_check("cmd /c exit 0", "")
+        self.assertTrue(ok)
+        self.assertEqual(code, 0)
+
+    def test_run_check_expect_fragment(self):
+        ok, _, out = station._run_check("cmd /c echo hello-spoor", "hello-spoor")
+        self.assertTrue(ok)
+        bad, _, _ = station._run_check("cmd /c echo hello-spoor", "absent")
+        self.assertFalse(bad)
+
+    def test_say_true_claim_lands_as_fact(self):
+        station.cmd_say(["a true thing", "--cmd", "cmd /c echo yes-42",
+                        "--expect", "yes-42"])
+        ev = self._spine_events()[-1]
+        self.assertEqual(ev["kind"], "fact")
+        self.assertTrue(ev["body"]["ok"])
+        self.assertEqual(ev["body"]["claim"], "a true thing")
+
+    def test_say_false_claim_refused_and_recorded(self):
+        with self.assertRaises(SystemExit) as cm:
+            station.cmd_say(["a false thing", "--cmd", "cmd /c echo actual",
+                            "--expect", "claimed"])
+        self.assertEqual(cm.exception.code, 1)
+        ev = self._spine_events()[-1]
+        self.assertEqual(ev["kind"], "refuted")   # false version never a fact
+        self.assertFalse(ev["body"]["ok"])
+
+    def test_walk_facts_detects_world_move(self):
+        probe = self.tmp / "world.txt"
+        probe.write_text("state-A", encoding="utf-8")
+        station.cmd_say(["world is A", "--cmd", f'cmd /c type "{probe}"',
+                        "--expect", "state-A"])
+        (f, ok, _), = station._walk_facts(1)
+        self.assertTrue(ok)                        # true while world holds
+        probe.write_text("state-B", encoding="utf-8")
+        (f, ok, out), = station._walk_facts(1)
+        self.assertFalse(ok)                       # STALE when world moves
+        self.assertIn("state-B", out)              # fresh truth travels
+
+    def test_spine_attribution(self):
+        os.environ["STATION_ACTOR"] = "suite-probe"
+        try:
+            station._spine_append("note", "attributed")
+        finally:
+            del os.environ["STATION_ACTOR"]
+        station._spine_append("note", "anonymous")
+        events = self._spine_events()
+        self.assertEqual(events[-2]["by"], "suite-probe")
+        self.assertTrue(events[-1]["by"].startswith("pid"))
+
+    def test_errata_add_appends_classed_entry(self):
+        station.cmd_errata(["add", "test-class", "what happened",
+                           "the cost", "the guard"])
+        e = json.loads(station.ERRATA.read_text(encoding="utf-8")
+                       .splitlines()[-1])
+        self.assertEqual(e["cls"], "test-class")
+        self.assertEqual(e["guard"], "the guard")
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=1)
