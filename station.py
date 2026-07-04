@@ -186,6 +186,23 @@ def _repo_line(name: str, path: str) -> str:
     untracked = sum(1 for ln in lines if ln.startswith("??"))
     mark = "" if dirty == 0 else f"*{dirty}mod"
     unt = "" if untracked == 0 else f"+{untracked}unt"
+    if untracked:
+        # honest alarm grading (turn 39): untracked-with-offsite-snapshot is
+        # protected dirt, not at-risk dirt. Freshness matters: a snapshot
+        # older than the newest untracked byte is stale protection.
+        zips = sorted(Path("E:/continuity/rescue").glob(f"{name}-*.zip"))
+        if zips:
+            znew = zips[-1].stat().st_mtime
+            newest = 0.0
+            for ln in lines:
+                if ln.startswith("??"):
+                    try:
+                        newest = max(newest, (Path(path) / ln[3:].strip()
+                                              .strip('"')).stat().st_mtime)
+                    except OSError:
+                        pass
+            unt += ("(rescued)" if znew >= newest
+                    else f"(rescue-STALE {zips[-1].name[-14:-4]})")
     return f"{name} {head}{mark}{unt}"
 
 
