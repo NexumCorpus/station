@@ -971,6 +971,12 @@ def cmd_log(name: str, tail: int | None = None, full: bool = False):
 def cmd_note(text: str):
     _spine_append("note", text)
     print(f"noted @{_now()}")
+    # adoption pressure, never a gate (notes are legal narrative): numbers
+    # in prose rot; numbers with routes don't. Nudge fires at the exact
+    # moment of the errata's dominant failure class — claim-write time.
+    if re.search(r"\d+ */ *\d+|= *\d|\d+%|x\d+", text):
+        print("  [nudge] this note carries figures — if any is load-bearing,"
+              " `station say` gives it a route (quotes rot)")
 
 
 # ---------------------------------------------------- provable speech ------
