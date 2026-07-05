@@ -26,6 +26,7 @@ ill-formed.
 | VERDICT | PASS/FAIL/VOID + receipt-pointer | re-run the pointed procedure | suite lines, gate output |
 | PIN | [[pin:PATH@SHA16]] | rehash the file | load-bearing pointers in docs |
 | DELTA | {base: PIN, diff} | apply to pinned base | git commits against pins |
+| SHARD | {crystal_pin:[[pin]], k, n, i, scheme, frag_sha16} | gather ≥k fragments; `decode(scheme)`; assert `sha256(decoded)[:16]==crystal_pin` | shards.jsonl (append-only fragments) · checker `checks/shards.py` |
 
 ## The three strata (why these types and not a syntax)
 
@@ -40,6 +41,15 @@ ill-formed.
    plus only what genuinely differs. CAVEAT: pointer density must drop as
    weight-sharing drops — a different model tier or lab needs more English
    around the same spoor. Address by capability of the least-kin reader.
+   The pointer family has three route-to-truths, weakest survival assumption
+   last: **PIN = rehash the stored blob** (detects loss); **DELTA = apply diff
+   to a surviving pinned base**; **SHARD = decode any k of n coded fragments
+   then rehash** (repairs loss — recovers content that exists in no single
+   fragment). SHARD's decoder is DETERMINISTIC trusted code (Reed-Solomon over
+   GF(2^8), `shard_rs.py`, a ROOTS Tier-1 root), never an LLM — the property
+   that keeps its verdict reproducible instead of a flaky pin. The estate,
+   fully sharded, is one error-correcting codeword: any sufficient fragment
+   subset decodes to the same animal, or honestly reports BELOW-K.
 
 ## Adoption rules (this is where the language becomes practice)
 

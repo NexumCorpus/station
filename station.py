@@ -72,6 +72,11 @@ Commands:
   station conversions       performance->possession stock (SS17 vital sign):
                             HARD certs + STRUCTURAL drift/witness + SPEECH say;
                             decidable continuously where SS15's ratio blocks
+  station shard <file> [k n]  erasure-code a crystal: n fragments, ANY k
+                            reconstitute it byte-exact (a PIN detects loss, a
+                            SHARD repairs it); refuses k>=n. -> shards.jsonl
+  station recover <pin>     reconstitute a crystal from surviving fragments
+                            (RECOVERED / BELOW-K / MISDECODE-refused)
   station organs [--all|--kill|--open]  the spiral ledger as a living organ
                             registry: artifact refs existence-checked (exit 1 =
                             rot), kill conditions + open items surfaced
@@ -632,6 +637,7 @@ def cmd_backup():
         (HERE / "coggate-ledger.jsonl", dest / "station" / "coggate-ledger.jsonl"),
         (HERE / "burn-ledger.jsonl", dest / "station" / "burn-ledger.jsonl"),
         (HERE / "preregs.jsonl", dest / "station" / "preregs.jsonl"),
+        (HERE / "shards.jsonl", dest / "station" / "shards.jsonl"),
         (CURSORS / "witness.json", dest / "station" / "witness.json"),
         (Path("E:/atlas-station/CLAIMS.json"), dest / "atlas" / "CLAIMS.json"),
         (Path("E:/mission-runs/results.jsonl"), dest / "boundary" / "results.jsonl"),
@@ -1311,6 +1317,92 @@ def cmd_conversions():
                                   "say_tot": say_tot, "stock": stock})
 
 
+# --------------------------------------------------------------- shards -----
+SHARDS = HERE / "shards.jsonl"
+
+
+def _shard_lines():
+    if not SHARDS.is_file():
+        return []
+    return [json.loads(l) for l in SHARDS.read_text(encoding="utf-8").splitlines()
+            if l.strip()]
+
+
+def cmd_shard(args):
+    """Mint erasure-coded SHARDs of a crystal (the SPOOR SHARD type). `station
+    shard <file> [k n]` splits the file into n deterministic fragments (default
+    k=4 n=6); ANY k reconstitute it BYTE-EXACT, so it survives n-k losses at any
+    offsets. A PIN detects loss; a SHARD repairs it. Fragments append to
+    shards.jsonl. Refuses k>=n (that is a pin wearing shard costume)."""
+    import base64
+    import hashlib
+    from shard_rs import encode
+    if not args:
+        print("usage: station shard <file> [k n]")
+        return
+    path = args[0]
+    k = int(args[1]) if len(args) > 1 else 4
+    n = int(args[2]) if len(args) > 2 else 6
+    if k >= n:
+        print(f"shard: k({k}) must be < n({n}) — k==n is a pin, not a shard")
+        return
+    p = Path(path)
+    if not p.is_file():
+        print(f"shard: no such file {path}")
+        return
+    data = p.read_bytes()
+    pin = hashlib.sha256(data).hexdigest()[:16]
+    frags, olen = encode(data, k, n)
+    scheme = f"rs-gf256-k{k}-n{n}"
+    existing = {(s["crystal_pin"], s["i"]) for s in _shard_lines()}
+    added = 0
+    with SHARDS.open("a", encoding="utf-8") as f:
+        for i, fr in enumerate(frags):
+            if (pin, i) in existing:
+                continue
+            f.write(json.dumps({
+                "crystal_pin": pin, "path": str(p).replace("\\", "/"),
+                "k": k, "n": n, "i": i, "scheme": scheme, "orig_len": olen,
+                "frag_sha16": hashlib.sha256(fr).hexdigest()[:16],
+                "frag_b64": base64.b64encode(fr).decode()}) + "\n")
+            added += 1
+    print(f"SHARD {scheme} pin={pin} path={p.name} fragments+={added} "
+          f"(any {k}/{n} reconstitute; survives {n - k} losses)")
+
+
+def cmd_recover(args):
+    """Reconstitute a crystal from surviving SHARD fragments. `station recover
+    <crystal_pin>` gathers fragments, decodes from any k, and rehashes:
+    RECOVERED iff the decode matches the pin, BELOW-K if <k survive, MISDECODE
+    if a decode's hash != pin (refused, never a silent wrong crystal)."""
+    import base64
+    import hashlib
+    from shard_rs import decode
+    if not args:
+        print("usage: station recover <crystal_pin>")
+        return
+    pin = args[0]
+    rows = [s for s in _shard_lines() if s["crystal_pin"] == pin]
+    if not rows:
+        print(f"recover: no shards for pin {pin}")
+        return
+    k, n, olen = rows[0]["k"], rows[0]["n"], rows[0]["orig_len"]
+    frags = {s["i"]: base64.b64decode(s["frag_b64"]) for s in rows}
+    if len(frags) < k:
+        print(f"BELOW-K pin={pin}: {len(frags)}/{k} fragments survive")
+        return
+    rec = decode(frags, k, n, olen)
+    if rec is None:
+        print(f"BELOW-K pin={pin}: decode failed")
+        return
+    got = hashlib.sha256(rec).hexdigest()[:16]
+    if got != pin:
+        print(f"MISDECODE pin={pin}: decoded hash {got} != pin (refused)")
+        return
+    print(f"RECOVERED pin={pin} path={rows[0]['path']} bytes={olen} "
+          f"from {len(frags)}/{n} fragments (needed {k})")
+
+
 # ---------------------------------------------------------- burn / eras -----
 BURN_LEDGER = HERE / "burn-ledger.jsonl"
 
@@ -1825,6 +1917,10 @@ def main():
         cmd_eras()
     elif cmd == "conversions":
         cmd_conversions()
+    elif cmd == "shard":
+        cmd_shard(args[1:])
+    elif cmd == "recover":
+        cmd_recover(args[1:])
     elif cmd == "organs":
         cmd_organs(args[1:])
     elif cmd == "seal":

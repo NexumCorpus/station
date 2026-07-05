@@ -22,6 +22,7 @@ mutates — a changed root's one-time audit is stale until re-audited.
 |---|---|---|---|
 | 80344b4c891b3677 | E:/boundary/mission1/scorer.py | the trusted scorer IS the ground truth every organism verdict rests on; nothing re-derives whether it scores correctly | oracle-audit — fresh agents, absences-reported-as-findings (the clause that exonerated Specimen 0) |
 | d9645a1343a03ba8 | E:/station/checks/vacuity_audit.py | the auditor-of-auditors' regex decides which verdict-emitters can perform; nothing audits the regex | none — trusted on construction (turn 59), named here as the honest residual |
+| 83b7bc0bd2cb3b81 | E:/station/shard_rs.py | the SHARD decoder: every reconstitution trusts its RS/GF(256) arithmetic; a wrong decoder would silently mis-reconstitute the whole estate (caught only by the pin rehash it also computes against) | erasure self-test — every k-of-n pattern byte-exact (k∈{2,3,4,8}) — + code review at construction |
 
 ## Tier 2 — continuously-re-audited roots (trusted, but a running check guards them)
 

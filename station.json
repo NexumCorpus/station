@@ -1,74 +1,75 @@
 {
-  "repos": {
-    "atlas": "E:/atlas-station",
-    "ege": "E:/emergent-geometry-engine",
-    "rde": "E:/recursive-discovery-engine",
-    "director2": "E:/director2",
-    "boundary": "E:/boundary",
-    "station": "E:/station",
-    "demiurge": "E:/demiurge",
-    "continuity": "E:/continuity"
+ "repos": {
+  "atlas": "E:/atlas-station",
+  "ege": "E:/emergent-geometry-engine",
+  "rde": "E:/recursive-discovery-engine",
+  "director2": "E:/director2",
+  "boundary": "E:/boundary",
+  "station": "E:/station",
+  "demiurge": "E:/demiurge",
+  "continuity": "E:/continuity"
+ },
+ "claims": "E:/atlas-station/CLAIMS.json",
+ "suites": [
+  {
+   "name": "atlas-wing",
+   "cwd": "E:/atlas-station",
+   "cmd": "npm run -s test:wing"
   },
-  "claims": "E:/atlas-station/CLAIMS.json",
-  "suites": [
-    {
-      "name": "atlas-wing",
-      "cwd": "E:/atlas-station",
-      "cmd": "npm run -s test:wing"
-    },
-    {
-      "name": "atlas-d2",
-      "cwd": "E:/atlas-station",
-      "cmd": "npm run -s test:wing:d2"
-    },
-    {
-      "name": "atlas-felt",
-      "cwd": "E:/atlas-station",
-      "cmd": "npm run -s test:wing:felt"
-    },
-    {
-      "name": "atlas-grader",
-      "cwd": "E:/atlas-station",
-      "cmd": "npm run -s test:grader"
-    },
-    {
-      "name": "ege",
-      "cwd": "E:/emergent-geometry-engine",
-      "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest -q"
-    },
-    {
-      "name": "boundary",
-      "cwd": "E:/boundary/mission1",
-      "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest tests -q"
-    },
-    {
-      "name": "station",
-      "cwd": "E:/station",
-      "cmd": "python tests_station.py"
-    }
-  ],
-  "witness": [
-    "E:/atlas-station/CLAIMS.json",
-    "E:/station/spine.jsonl",
-    "E:/station/grimoire.jsonl",
-    "E:/mission-runs/results.jsonl",
-    "E:/mission-runs/w2_results.jsonl",
-    "E:/demiurge/ledger.jsonl",
-    "E:/station/coggate-ledger.jsonl",
-    "E:/station/llm-ledger.jsonl",
-    "E:/station/spiral.jsonl",
-    "E:/station/pulse-ledger.jsonl",
-    "E:/station/errata.jsonl",
-    "E:/station/burn-ledger.jsonl",
-    "E:/station/preregs.jsonl"
-  ],
-  "logs": {
-    "pulse": "E:/station/pulse-ledger.jsonl",
-    "shim": "E:/atlas-station/_shim.log.err",
-    "campaign": "E:/atlas-station/_rde_campaign.log",
-    "f2f": "E:/atlas-station/docs/collab/f2f/transcript.md",
-    "mission1": "E:/mission-runs/wave1.log",
-    "wave2": "E:/mission-runs/wave2.log",
-    "digest": "E:/station/digests/*.md"
+  {
+   "name": "atlas-d2",
+   "cwd": "E:/atlas-station",
+   "cmd": "npm run -s test:wing:d2"
+  },
+  {
+   "name": "atlas-felt",
+   "cwd": "E:/atlas-station",
+   "cmd": "npm run -s test:wing:felt"
+  },
+  {
+   "name": "atlas-grader",
+   "cwd": "E:/atlas-station",
+   "cmd": "npm run -s test:grader"
+  },
+  {
+   "name": "ege",
+   "cwd": "E:/emergent-geometry-engine",
+   "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest -q"
+  },
+  {
+   "name": "boundary",
+   "cwd": "E:/boundary/mission1",
+   "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest tests -q"
+  },
+  {
+   "name": "station",
+   "cwd": "E:/station",
+   "cmd": "python tests_station.py"
   }
+ ],
+ "witness": [
+  "E:/atlas-station/CLAIMS.json",
+  "E:/station/spine.jsonl",
+  "E:/station/grimoire.jsonl",
+  "E:/mission-runs/results.jsonl",
+  "E:/mission-runs/w2_results.jsonl",
+  "E:/demiurge/ledger.jsonl",
+  "E:/station/coggate-ledger.jsonl",
+  "E:/station/llm-ledger.jsonl",
+  "E:/station/spiral.jsonl",
+  "E:/station/pulse-ledger.jsonl",
+  "E:/station/errata.jsonl",
+  "E:/station/burn-ledger.jsonl",
+  "E:/station/preregs.jsonl",
+  "E:/station/shards.jsonl"
+ ],
+ "logs": {
+  "pulse": "E:/station/pulse-ledger.jsonl",
+  "shim": "E:/atlas-station/_shim.log.err",
+  "campaign": "E:/atlas-station/_rde_campaign.log",
+  "f2f": "E:/atlas-station/docs/collab/f2f/transcript.md",
+  "mission1": "E:/mission-runs/wave1.log",
+  "wave2": "E:/mission-runs/wave2.log",
+  "digest": "E:/station/digests/*.md"
+ }
 }

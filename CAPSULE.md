@@ -27,6 +27,8 @@ COMMANDS (read cheaply):
                            cumulative burn + OK/RISING-PAST-WORST verdict
   conversions              SS17 performance->possession stock (decidable vital
                            sign): HARD certs + STRUCTURAL drift/witness + SPEECH
+  shard <file> [k n] / recover <pin>   erasure-code a crystal into n fragments
+                           (any k reconstitute byte-exact) / rebuild from survivors
   organs [--all|--kill|--open]  spiral-turn organ map: refs existence-checked
                            (exit 1 = rot); --kill = falsifier corpus for
                            audits; --open = parked items
