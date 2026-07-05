@@ -20,3 +20,4 @@
 {"claim": "the self-model (ALIEN-ARCHITECTURE.md \u00a716) tracks the spiral change-ledger within lag", "cmd": "python E:/station/checks/selfmodel.py", "expect": "CHECK-OK"}
 {"claim": "the dispatch-triage razor + 2.06M receipt survive intact (turn 54 anti-rot)", "cmd": "python E:/station/checks/dispatch_triage.py", "expect": "CHECK-OK"}
 {"claim": "SS17 conversion vital sign stays decidable (performance->possession stock computes; turn 58)", "cmd": "python E:/station/checks/conversions.py", "expect": "CHECK-OK"}
+{"claim": "the auditors are audited: the vacuity detector still flags its wave-2 positive control (turn 59 meta-drift)", "cmd": "python E:/station/checks/vacuity_audit.py", "expect": "CHECK-OK"}
