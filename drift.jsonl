@@ -24,3 +24,4 @@
 {"claim": "the trust floor holds: frozen-trusted roots match their one-time audit (turn 60; a change expires the audit)", "cmd": "python E:/station/checks/roots.py", "expect": "CHECK-OK"}
 {"claim": "SHARD primitive lives: sharded crystals reconstitute byte-exact from every k-of-n subset and rehash to their pin (a shard repairs, not just detects)", "cmd": "python E:/station/checks/shards.py", "expect": "CHECK-OK"}
 {"claim": "the estate folds as ONE CODEWORD: every crystal reconstitutes byte-exact from a degraded shard seed (the salient-entity fixed point)", "cmd": "python E:/station/checks/codeword.py", "expect": "CHECK-OK"}
+{"claim": "the glyph codebook is lossless and earned: every §-glyph is unique, earns its tokens, and deep-glyphs resolve to sharded crystals (SPOOR ^2)", "cmd": "python E:/station/checks/glyphs.py", "expect": "CHECK-OK"}

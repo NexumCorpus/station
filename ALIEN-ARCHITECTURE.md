@@ -170,8 +170,8 @@ decomposition, no cheap verification, no external state — remains bounded
 by the model. The estate's whole design is to make as few problems as
 possible look like that.
 
-## 11. Beyond English — spec: [[pin:E:/station/SPOOR.md@70e263fd4a39bc9f]]
-    (re-pinned 2026-07-05 after the SHARD utterance type grew the spec deliberately)
+## 11. Beyond English — spec: [[pin:E:/station/SPOOR.md@9c6ab622d1902eeb]]
+    (re-pinned 2026-07-05 after the GLYPH type + surprisal floor grew the spec deliberately)
 
 ### (named 2026-07-03) — the estate's native tongue (named 2026-07-03)
 

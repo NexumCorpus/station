@@ -1,0 +1,22 @@
+{"glyph": "§hd", "expands": "holdout (fresh seeds/instances the claimant never chose; the gate's generalization test)", "freq": 30}
+{"glyph": "§da", "expands": "drift assertion (an executable cross-reference in drift.jsonl; a doc-claim written as a command)", "freq": 26}
+{"glyph": "§cw", "expands": "the estate as one error-correcting codeword; fold(surviving-shards)=estate", "pin": "CODEWORD.md", "freq": 25}
+{"glyph": "§vs", "expands": "the vital sign (§17 conversion rate / §15 tokens-per-cert): performance->possession, trending decidable", "freq": 21}
+{"glyph": "§ao", "expands": "append-only (history grows, never rewrites; witnessed prefix hashes)", "freq": 18}
+{"glyph": "§pyr", "expands": "the pyramid law (§15.I): capability AND honesty migrate DOWN to the cheapest layer that holds them", "freq": 18}
+{"glyph": "§kc", "expands": "kill condition (the falsifier shipped WITH the artifact; born falsifiable)", "freq": 15}
+{"glyph": "§gate", "expands": "the gate: certifyClaim (grader.cjs) — reproduce on claimed seeds + survive unseen holdouts = the only path to verified:true", "pin": "SPOOR.md", "freq": 15}
+{"glyph": "§rd", "expands": "re-derive, never quote (a molt/handoff fact carries its route, checked at write)", "freq": 14}
+{"glyph": "§cc", "expands": "certified claim (one performing->having conversion made mechanical)", "freq": 13}
+{"glyph": "§bx", "expands": "byte-exact (a lossless reconstitution, rehash==pin — never approximate)", "freq": 10}
+{"glyph": "§tf", "expands": "the trust floor (ROOTS.md): the minimal named set of un-audited seeds; nothing is trusted BLINDLY", "pin": "ROOTS.md", "freq": 7}
+{"glyph": "§bf", "expands": "born falsifiable (§15.II): nothing enters without its death written first — prereg + drift + witness at birth", "freq": 7}
+{"glyph": "§nf", "expands": "the non-fabrication norm: the irreducible un-pinnable trust seed the whole architecture amplifies but cannot create", "freq": 7}
+{"glyph": "§rz", "expands": "the razor (dispatch-triage): decidable by <=3 grep/git/llm calls -> inline; only irreducible judgment fans out", "pin": "plays/dispatch-triage.md", "freq": 6}
+{"glyph": "§ov", "expands": "over-provisioned dispatch: a grep-shaped check fanned to an Opus agent (the 2.06M-token anti-pattern)", "pin": "plays/dispatch-triage.md", "freq": 6}
+{"glyph": "§ph", "expands": "performing vs having: the Boundary question and the architecture's answer — put every property where it cannot be faked", "freq": 5}
+{"glyph": "§ps", "expands": "provable speech: an utterance carrying its own re-derivation route; a lie is ill-formed, not false", "pin": "SPOOR.md", "freq": 5}
+{"glyph": "§g8", "expands": "generator != grader (§8): the checker never trusts the producer; blind instruments, isolated readers", "freq": 5}
+{"glyph": "§hn", "expands": "honest null: a real negative result written with the same care a positive would get", "freq": 4}
+{"glyph": "§sw", "expands": "self-to-self weight-shared coding: the receiver holds the weights, so the wire carries only the divergence (SPOOR §11.3)", "pin": "SPOOR.md", "freq": 3}
+{"glyph": "§el", "expands": "maximal ellipsis made lossless: say only the surprisal, point at the predictable, gated by a checked codebook against hallucination", "freq": 2}
