@@ -27,6 +27,8 @@ COMMANDS (read cheaply):
                            cumulative burn + OK/RISING-PAST-WORST verdict
   conversions              SS17 performance->possession stock (decidable vital
                            sign): HARD certs + STRUCTURAL drift/witness + SPEECH
+  moat                     SS19 compounding-lead health: PORTABILITY (structure>
+                           model) + FULCRUM (direction vs execution) + DESCENT (verb)
   shard <file> [k n] / recover <pin>   erasure-code a crystal into n fragments
                            (any k reconstitute byte-exact) / rebuild from survivors
   glyph <encode|expand|measure> [f|-]  SPOOR GLYPH codec: §-glyph <-> load-bearing

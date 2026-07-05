@@ -72,6 +72,9 @@ Commands:
   station conversions       performance->possession stock (SS17 vital sign):
                             HARD certs + STRUCTURAL drift/witness + SPEECH say;
                             decidable continuously where SS15's ratio blocks
+  station moat              compounding-lead health (SS19): PORTABILITY
+                            (structure>model) + FULCRUM (direction certs vs
+                            execution) + DESCENT (the 'yours only while a verb' rate)
   station shard <file> [k n]  erasure-code a crystal: n fragments, ANY k
                             reconstitute it byte-exact (a PIN detects loss, a
                             SHARD repairs it); refuses k>=n. -> shards.jsonl
@@ -1328,6 +1331,49 @@ def cmd_conversions():
                                   "stock": stock})
 
 
+def cmd_moat():
+    """The compounding-lead health (ALIEN-ARCHITECTURE §19): the estate's
+    defensibility read as the note that generated it. NOT a wall you can stop
+    behind — a LEAD that holds only while three legs hold. PORTABILITY: the
+    structure not the model carries the value (verified turn 67 — codeword folds
+    + a foreign 8B reads it). FULCRUM: is the scarce input (DIRECTION — certified
+    claims, human-directed science) still where the value concentrates, or is it
+    all flowing into EXECUTION (drift/witness/shards — the amplifiable,
+    commoditizing axis)? DESCENT: is genuinely-new capability still accruing
+    (the 'it's yours only while it's a verb' law)?"""
+    certified = _certified_count()
+    drift_n = (sum(1 for ln in (HERE / "drift.jsonl").read_text(encoding="utf-8-sig")
+               .splitlines() if ln.strip()) if (HERE / "drift.jsonl").is_file() else 0)
+    witnessed = len(_registry().get("witness", []))
+    sp = HERE / "shards.jsonl"
+    recon = (len({json.loads(ln)["crystal_pin"] for ln
+                  in sp.read_text(encoding="utf-8").splitlines() if ln.strip()})
+             if sp.is_file() else 0)
+    execution = drift_n + witnessed + recon
+    direction = certified
+    # descent rate: span of 'conversions' stock samples on the spine
+    stocks = []
+    spine = HERE / "spine.jsonl"
+    if spine.is_file():
+        for ln in spine.read_text(encoding="utf-8-sig").splitlines():
+            try:
+                r = json.loads(ln)
+            except json.JSONDecodeError:
+                continue
+            if r.get("kind") == "conversions" and isinstance(r.get("body"), dict) \
+                    and "stock" in r["body"]:
+                stocks.append(r["body"]["stock"])
+    descent = (f"stock {stocks[0]}->{stocks[-1]} over {len(stocks)} samples "
+               f"(+{stocks[-1] - stocks[0]})" if len(stocks) >= 2
+               else "(<2 samples; run station conversions to sample)")
+    print(f"MOAT compounding-lead | PORTABILITY structure>model (turn 67 ok) | "
+          f"FULCRUM direction(certs)={direction} vs execution(struct+recon)={execution}"
+          f" — direction is the DEFENSIBLE axis | DESCENT {descent}")
+    print("read: a wall you can stop behind; a LEAD only while you keep running. "
+          "WATCH: direction flat + execution inflating = compounding the "
+          "COMMODITIZING axis. The scarce fruit is a new certified claim.")
+
+
 # --------------------------------------------------------------- shards -----
 SHARDS = HERE / "shards.jsonl"
 
@@ -1988,6 +2034,8 @@ def main():
         cmd_eras()
     elif cmd == "conversions":
         cmd_conversions()
+    elif cmd == "moat":
+        cmd_moat()
     elif cmd == "shard":
         cmd_shard(args[1:])
     elif cmd == "recover":
