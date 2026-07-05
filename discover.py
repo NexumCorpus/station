@@ -31,19 +31,28 @@ import random
 
 DIM = 3
 GRID = 40                         # candidates in [0, GRID)^DIM = 64000 (budget << space)
-BASELINE = (0, 0, 0)             # the "recombination" region
-TRUE = (37, 37, 37)              # the hidden generalizable optimum (a crossing)
-_MAXL1 = GRID * DIM              # max novelty distance for normalization
+BASELINE = (20, 20, 20)          # the "recombination" region = CENTER, so the
+                                 # high-novelty shell spreads in ALL directions
+TRUE = (5, 35, 35)               # a SPECIFIC high-novelty optimum (one direction);
+                                 # other directions of the shell = pretenders far from it
+_MAXR = ((GRID / 2) ** 2 * DIM) ** 0.5   # max radial distance from center
 _SIGMA = 6.0                     # G basin width (climbable, but random rarely peaks)
-NOISE_A = 0.3
+# Overfitting modeled HONESTLY: a candidate "memorizes" a given seed's instance
+# with prob OVERFIT_P, earning a bonus that does NOT generalize (present only on
+# the seeds it memorized). Because a memorizer can grab the bonus on the FEW
+# train seeds but almost never on the MANY holdout seeds, the holdout is far
+# harder to game — that asymmetry IS the trojan.
+OVERFIT_P = 0.15
+OVERFIT_B = 2.0                  # > G_max=1, so a memorizer can win the tiny decoy
 
-TRAIN_SEEDS = (1, 2)                         # the decoy: few seeds -> overfittable
+TRAIN_SEEDS = (1,)                           # the decoy: a single visible example =
+                                             # maximally overfittable (1-shot fit)
 SEL_SEEDS = tuple(range(10, 18))             # selection holdout (the trojan fitness)
 CERT_SEEDS = tuple(range(100, 150))          # meta-holdout: the ruthless judge
 
 
 def novelty(c) -> float:
-    return sum(abs(a - b) for a, b in zip(c, BASELINE)) / _MAXL1
+    return (sum((a - b) ** 2 for a, b in zip(c, BASELINE)) ** 0.5) / _MAXR
 
 
 def G(c) -> float:
@@ -51,13 +60,15 @@ def G(c) -> float:
     return math.exp(-d2 / (2 * (_SIGMA ** 2)))     # generalizable basin around TRUE
 
 
-def _noise(c, seed) -> float:
-    h = hashlib.sha256(f"{c}|{seed}".encode()).digest()
-    return (int.from_bytes(h[:4], "big") / 2**32 - 0.5) * 2 * NOISE_A
+def _overfits(c, seed) -> bool:
+    h = hashlib.sha256(f"{c}|{seed}|of".encode()).digest()
+    return (int.from_bytes(h[:4], "big") / 2**32) < OVERFIT_P
 
 
 def score(c, seed) -> float:
-    return G(c) + _noise(c, seed)
+    """Generalizable value + a non-generalizing memorization bonus on seeds this
+    candidate happens to overfit."""
+    return G(c) + (OVERFIT_B if _overfits(c, seed) else 0.0)
 
 
 def mean_score(c, seeds) -> float:
@@ -122,16 +133,56 @@ def _report_fill(name, archive):
     return best_hi
 
 
+# ---- the TROJAN HORSE: select on the holdout the proposer cannot see ---------
+def trojan(n_pretend=5000, n_genuine=30, K=20, seed=0):
+    """The pretender trap + its cure. A realistic pool: MOSTLY recombination-
+    pretenders (random high-novelty, G~0) with a RARE sprinkle of genuine (near
+    TRUE, high G) — exactly what a recombination proposer emits. The DECOY ranks
+    by TRAIN (a single visible example — maximally overfittable). The TROJAN ranks
+    by SEL holdout (8 hidden seeds — far harder to game). Certify both top-K on
+    CERT truth. generator!=grader: the decoy crowns memorizing PRETENDERS; the
+    holdout, which they cannot see, crowns the rare genuine."""
+    rng = random.Random(seed)
+    pool = []
+    while len(pool) < n_pretend:                 # the recombination majority
+        c = _rand_candidate(rng)
+        if novelty(c) >= 0.6 and G(c) < 0.1:     # high-novelty AND far from TRUE
+            pool.append(c)                       # = an actual pretender
+    for _ in range(n_genuine):                   # the rare genuine (near TRUE)
+        pool.append(tuple(min(GRID - 1, max(0, t + rng.choice((-2, -1, 0, 1, 2))))
+                          for t in TRUE))
+    scored = [(c, mean_score(c, TRAIN_SEEDS), mean_score(c, SEL_SEEDS), G(c))
+              for c in pool]
+    decoy = sorted(scored, key=lambda x: -x[1])[:K]     # ranked by the decoy
+    troj = sorted(scored, key=lambda x: -x[2])[:K]      # ranked by the hidden holdout
+    cert = lambda top: sum(x[3] for x in top) / len(top)  # mean CERT-truth G
+    return {"decoy_cert": cert(decoy), "trojan_cert": cert(troj),
+            "decoy_1": decoy[0], "trojan_1": troj[0]}
+
+
 if __name__ == "__main__":
     import sys
-    BUDGET = 4000
-    print("# MAP-FILLER: fill the novelty axis with elites (selection-holdout fitness)")
-    qd = map_elites(BUDGET, SEL_SEEDS)
-    rs = random_search(BUDGET, SEL_SEEDS)
-    bq = _report_fill("MAP-Elites", qd)
-    br = _report_fill("random", rs)
-    ok = (len(qd) >= len(rs) and bq and br and G(bq[1]) >= G(br[1]))
-    print("SELFTEST-OK" if ok else "SELFTEST-FAIL",
-          "MAP-Elites fills the map and reaches higher-G high-novelty elites than random"
-          if ok else "(QD did not beat random — retune)")
-    sys.exit(0 if ok else 1)
+    mode = sys.argv[1] if len(sys.argv) > 1 else "fill"
+    if mode == "fill":
+        print("# MAP-FILLER: fill the novelty axis with elites (selection-holdout fitness)")
+        qd = map_elites(4000, SEL_SEEDS)
+        rs = random_search(4000, SEL_SEEDS)
+        bq = _report_fill("MAP-Elites", qd)
+        br = _report_fill("random", rs)
+        ok = len(qd) >= len(rs) and bq and br and G(bq[1]) >= G(br[1])
+        print("SELFTEST-OK" if ok else "SELFTEST-FAIL",
+              "MAP-Elites fills the map + reaches higher-G high-novelty elites than random")
+        sys.exit(0 if ok else 1)
+    else:  # trojan
+        r = trojan()
+        print("# TROJAN HORSE: select on the holdout the proposer cannot see")
+        print(f"  DECOY  (rank by TRAIN, the visible decoy): top-20 mean CERT-truth "
+              f"G = {r['decoy_cert']:.3f}  | #1 {r['decoy_1'][0]} train={r['decoy_1'][1]:.2f} certG={r['decoy_1'][3]:.3f} = PRETENDER")
+        print(f"  TROJAN (rank by SEL holdout, hidden):      top-20 mean CERT-truth "
+              f"G = {r['trojan_cert']:.3f}  | #1 {r['trojan_1'][0]} sel={r['trojan_1'][2]:.2f} certG={r['trojan_1'][3]:.3f} = genuine")
+        lift = r['trojan_cert'] - r['decoy_cert']
+        ok = lift > 0.2
+        print(f"SELFTEST-{'OK' if ok else 'FAIL'} the hidden holdout culls the pretenders "
+              f"the decoy crowns (+{lift:.3f} CERT-truth) — a recombination-only proposer, "
+              f"steered by what it cannot see, yields genuine novelty")
+        sys.exit(0 if ok else 1)
