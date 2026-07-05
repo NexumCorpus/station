@@ -31,6 +31,8 @@ COMMANDS (read cheaply):
                            model) + FULCRUM (direction vs execution) + DESCENT (verb)
   wall [ledger]            map the recombination wall (novelty-dist x holdout-
                            margin): THROUGH/PRETENDER/RECOMBINATION; find->map->through
+  discover                 wall-crossing engine: fill(QD)->trojan(hidden-holdout)->
+                           certify(meta-holdout, cleared-noise); CERTIFIED crossing or none
   shard <file> [k n] / recover <pin>   erasure-code a crystal into n fragments
                            (any k reconstitute byte-exact) / rebuild from survivors
   glyph <encode|expand|measure> [f|-]  SPOOR GLYPH codec: §-glyph <-> load-bearing

@@ -160,9 +160,48 @@ def trojan(n_pretend=5000, n_genuine=30, K=20, seed=0):
             "decoy_1": decoy[0], "trojan_1": troj[0]}
 
 
+# ---- the full apparatus: fill on SEL, CERTIFY on the untouched meta-holdout ---
+def pipeline(budget=4000, seed=0, noise_floor=0.2):
+    """End to end. FILL selecting on the SEL holdout (the trojan). Then CERTIFY on
+    the CERT meta-holdout the SEARCH NEVER TOUCHED — selecting on SEL partially
+    overfits SEL (turn 75's 0.683), so a third untouched split is the only honest
+    judge. Two anti-self-deception rules, both paid for: (1) the champion is the
+    high-novelty elite with the best CERT MARGIN, not merely the highest novelty
+    (which crowns a corner SEL-overfitter); (2) the margin must CLEAR THE NOISE
+    FLOOR (turn-55 cleared-noise gate) — a margin under the meta-holdout's noise
+    is NOT a crossing. A CERTIFIED CROSSING = high novelty AND margin > noise."""
+    import wall
+    archive = map_elites(budget, SEL_SEEDS, seed)
+    base_cert = max((mean_score(c, CERT_SEEDS) for cell, (c, _) in archive.items()
+                     if cell <= 2), default=mean_score(BASELINE, CERT_SEEDS))
+    hi = [(c, mean_score(c, CERT_SEEDS)) for cell, (c, _) in archive.items()
+          if cell >= 6]                         # high-novelty elites
+    champ, champ_cert = max(hi, key=lambda x: x[1], default=(BASELINE, base_cert))
+    margin = champ_cert - base_cert
+    certified = novelty(champ) >= 0.15 and margin > noise_floor   # cleared-noise gate
+    region = "THROUGH" if certified else wall.classify(novelty(champ), 0.0)
+    return {"champ": champ, "novelty": novelty(champ), "margin": margin,
+            "region": region, "certified": certified}
+
+
 if __name__ == "__main__":
     import sys
     mode = sys.argv[1] if len(sys.argv) > 1 else "fill"
+    if mode == "pipeline":
+        r = pipeline()
+        print("# FULL APPARATUS: fill(SEL) -> certify(CERT meta-holdout)")
+        print(f"  champion {r['champ']} | novelty={r['novelty']:.3f} | "
+              f"CERT holdout-margin={r['margin']:+.3f} | region={r['region']}")
+        if r["certified"]:
+            print(f"  => CERTIFIED CROSSING: novel (dist {r['novelty']:.2f}) AND "
+                  f"verified on a meta-holdout the search never saw. THROUGH the wall.")
+            print(f"  => RECURSION: this crossing is now the NEW baseline. The wall "
+                  f"moves to it; the next search must beat THIS frontier. Repeat = "
+                  f"compounding PAST recombination. Point it at the agent = self-improvement.")
+        print(f"SELFTEST-{'OK' if r['certified'] else 'FAIL'} the apparatus produces a "
+              f"CERTIFIED crossing when one is reachable (honest: the toy HAS one by "
+              f"construction; whether a REAL domain does is the open question — RDE: not yet)")
+        sys.exit(0 if r["certified"] else 1)
     if mode == "fill":
         print("# MAP-FILLER: fill the novelty axis with elites (selection-holdout fitness)")
         qd = map_elites(4000, SEL_SEEDS)

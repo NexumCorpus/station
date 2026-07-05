@@ -78,6 +78,9 @@ Commands:
   station wall [ledger]     map the recombination wall (novelty-distance x
                             holdout-margin): THROUGH/PRETENDER/RECOMBINATION;
                             no args = the RDE cache-eviction map. find->map->through
+  station discover          the wall-crossing engine: fill (QD) -> trojan (hidden-
+                            holdout select) -> certify (untouched meta-holdout,
+                            cleared-noise). Reports a CERTIFIED crossing or none
   station shard <file> [k n]  erasure-code a crystal: n fragments, ANY k
                             reconstitute it byte-exact (a PIN detects loss, a
                             SHARD repairs it); refuses k>=n. -> shards.jsonl
@@ -1395,6 +1398,20 @@ def cmd_wall(args):
         wall.demo()
 
 
+def cmd_discover():
+    """The wall-crossing engine (discover.py): fill the map (MAP-Elites QD) ->
+    trojan (select on a hidden holdout the proposer cannot see) -> certify on an
+    untouched meta-holdout with a cleared-noise gate. Prints whether it produced
+    a CERTIFIED crossing. find -> map -> get through, ruthless + honest."""
+    import discover
+    r = discover.pipeline()
+    print(f"DISCOVER | champion {r['champ']} novelty={r['novelty']:.3f} "
+          f"CERT-margin={r['margin']:+.3f} -> {r['region']}"
+          + ("  CERTIFIED CROSSING (through the wall; the crossing becomes the "
+             "new baseline -> the wall moves)" if r["certified"]
+             else "  no certified crossing (margin under noise, or not novel)"))
+
+
 # --------------------------------------------------------------- shards -----
 SHARDS = HERE / "shards.jsonl"
 
@@ -2059,6 +2076,8 @@ def main():
         cmd_moat()
     elif cmd == "wall":
         cmd_wall(args[1:])
+    elif cmd == "discover":
+        cmd_discover()
     elif cmd == "shard":
         cmd_shard(args[1:])
     elif cmd == "recover":
