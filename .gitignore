@@ -2,3 +2,12 @@ cursors/
 spine.jsonl
 WILL.md
 __pycache__/
+
+# credentials — never commit secret material (successor-audit hardening)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
