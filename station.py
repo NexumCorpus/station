@@ -69,6 +69,9 @@ Commands:
                             cert markers; idempotent, pulse-driven
   station eras              per-certification-era cumulative burn (SS15 decidable
                             form: rising unbounded = sick, cert ratchets = alive)
+  station conversions       performance->possession stock (SS17 vital sign):
+                            HARD certs + STRUCTURAL drift/witness + SPEECH say;
+                            decidable continuously where SS15's ratio blocks
   station organs [--all|--kill|--open]  the spiral ledger as a living organ
                             registry: artifact refs existence-checked (exit 1 =
                             rot), kill conditions + open items surfaced
@@ -1262,6 +1265,52 @@ def cmd_vitals(hours: float = 24.0):
                              "free_calls": free_calls})
 
 
+def cmd_conversions():
+    """The conversion vital sign (ALIEN-ARCHITECTURE.md §17): the estate's
+    health read as the rate it converts PERFORMANCE into POSSESSION — not
+    §15's tokens-per-claim, which BLOCKS (it cannot fall without a lumpy new
+    cert). A conversion is a claim forced from performed to structurally-HAD:
+    the gate (HARD — survived holdout the claimant never chose); a drift
+    assertion made re-derivable + a witnessed ledger made tamper-evident
+    (STRUCTURAL); a `say` that carried its own check (SPEECH). Continuously
+    decidable — the structural layers grow every structural turn. Components
+    printed by hardness so a stalled cert-rate cannot hide behind drift-
+    assertion inflation (the §17 gaming guard)."""
+    certified = _certified_count()
+    drift_p = HERE / "drift.jsonl"
+    drift_n = (sum(1 for ln in drift_p.read_text(encoding="utf-8-sig")
+                   .splitlines() if ln.strip()) if drift_p.is_file() else 0)
+    witnessed = len(_registry().get("witness", []))
+    say_had = say_tot = 0
+    prev = None
+    sp = HERE / "spine.jsonl"
+    if sp.is_file():
+        for ln in sp.read_text(encoding="utf-8-sig").splitlines():
+            try:
+                r = json.loads(ln)
+            except json.JSONDecodeError:
+                continue
+            body = r.get("body")
+            if (r.get("kind") in ("say", "fact") and isinstance(body, dict)
+                    and "ok" in body):
+                say_tot += 1
+                say_had += 1 if body["ok"] is True else 0
+            elif r.get("kind") == "conversions" and isinstance(body, dict):
+                prev = body
+    stock = certified + drift_n + witnessed
+    delta = (f" | Δstock since last {stock - prev['stock']:+d}"
+             if prev and "stock" in prev else " | (first sample)")
+    say_str = f"{say_had}/{say_tot}" if say_tot else "0/0"
+    print(f"CONVERSIONS | HARD certified={certified} | STRUCTURAL "
+          f"drift-assertions={drift_n} witnessed-ledgers={witnessed} | "
+          f"SPEECH provable-say={say_str} had | stock={stock}{delta}")
+    print("read (§17): performance->possession, DECIDABLE continuously "
+          "(structural layers grow each turn) — unlike §15's blocked ratio")
+    _spine_append("conversions", {"certified": certified, "drift": drift_n,
+                                  "witnessed": witnessed, "say_had": say_had,
+                                  "say_tot": say_tot, "stock": stock})
+
+
 # ---------------------------------------------------------- burn / eras -----
 BURN_LEDGER = HERE / "burn-ledger.jsonl"
 
@@ -1774,6 +1823,8 @@ def main():
         cmd_burn()
     elif cmd == "eras":
         cmd_eras()
+    elif cmd == "conversions":
+        cmd_conversions()
     elif cmd == "organs":
         cmd_organs(args[1:])
     elif cmd == "seal":

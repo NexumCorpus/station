@@ -437,7 +437,9 @@ are rare and lumpy (§15 amendment) — but conversions are not only certificati
 every drift assertion that survives re-derivation, every holdout a claim
 outlives, every refuted `say` is a smaller performing→having event, countable
 continuously. The exit from the stuck gauge is to count the conversions, not the
-tokens. That reframe is the standing work §18 will be.
+tokens. Built turn 58 — `station conversions`: a decidable companion to §15's
+blocked ratio (HARD certs + STRUCTURAL drift/witness + SPEECH say; first sample
+stock=39), drift-pinned to stay computable. The reframe is an instrument now.
 
 **Kill condition** (born falsifiable, §15.II — including this reading of the
 whole). §17 is decoration if any of: a certified claim is ever shown to certify

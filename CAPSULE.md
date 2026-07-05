@@ -25,6 +25,8 @@ COMMANDS (read cheaply):
   quota [h] / vitals [h]   metered-burn estimate / SS15 ratio + spine sample
   burn / eras              daily burn rollup ledger / per-certification-era
                            cumulative burn + OK/RISING-PAST-WORST verdict
+  conversions              SS17 performance->possession stock (decidable vital
+                           sign): HARD certs + STRUCTURAL drift/witness + SPEECH
   organs [--all|--kill|--open]  spiral-turn organ map: refs existence-checked
                            (exit 1 = rot); --kill = falsifier corpus for
                            audits; --open = parked items
