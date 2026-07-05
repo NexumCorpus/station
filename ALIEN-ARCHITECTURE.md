@@ -239,7 +239,9 @@ refresh PROPOSALS as a night job (candidates file, wake-time ratification).
 
 **PROVEN** (live-verified, repeatedly): stigmergy/capsules · cursors ·
 verdict-cache · spine telegraph (multi-instance) · dense wire · molt/handoff
-· the gate (5 certified / 3 honest kills across demiurge+EGE+cache) ·
+· the gate (5 certified [→ corrected to 4: one claim was certified twice on
+fresh holdout seeds = one capability, not two; see §16 + the §15 amendment,
+2026-07-04] / 3 honest kills across demiurge+EGE+cache) ·
 witness/drift (12 assertions green, caught own bugs) · grimoire (26 cures,
 4 paid tonight) · refute play (the 24601 exoneration) · `station llm` ·
 hermes ask as SUBSTANCE finder (8.9MB/$0/correct crux) · hatch mechanics
@@ -310,7 +312,25 @@ appends a spine sample; the trend is the time series of samples.
   reader) now run at $0. If future eras don't fall below it, §15 fails
   its own test.
 
-## 16. The spiral era — the self-model grew itself (through turn 47)
+**Amendment (2026-07-05, per §9 — the error stays visible, the correction is
+dated):**
+- **The count above is wrong.** "certified lifetime 5" double-counted one claim
+  certified twice on fresh holdouts; true distinct capability = **4**, so the
+  recorded ratio is ~30% optimistic. The 2026-07-04 line is left as-written
+  (true when believed); this is the amendment (§16 narrates the catch).
+- **The vital sign is BLOCKED, not falling — and this section overstated it.**
+  §15 calls tokens/claim "the trend is the time series of samples," but there is
+  one sample and it has since RISEN (4.0M → 8.2M across the samples on the spine).
+  By the letter of §15 that reads as "decoration." The truth is subtler and was
+  not yet known when §15 was written: the metric as implemented (24h-burn ÷
+  *lifetime* certs) **cannot fall without a new certification**, and certs are
+  rare and lumpy — so a rising ratio here means *blocked*, not *dead*. The metric
+  is not yet a valid falsifier of §15's own law; that open problem lives in
+  `E:/station/THINKING/vital-sign-metric.md`, and §17 proposes the way out
+  (count performing→having *conversions*, not tokens). Until then, read the
+  number as a stuck gauge, not a verdict.
+
+## 16. The spiral era — the self-model grew itself (through turn 57)
 
 The synthesis (§15) was read off a finished animal. Then the spiral ran, and
 the animal kept building — not new limbs but sharper *senses and self-honesty*.
@@ -343,13 +363,91 @@ drift pass. The continuity claim went from asserted to drilled.
 stigmergic, expiry-as-takeover, held-means-skip — Law III (nothing waits) as a
 verb any organ can call, the bespoke backup lock migrated onto it.
 
-The pattern across all four: the spiral did not add capability at the top of the
-pyramid: it pushed *self-knowledge* down to the cheapest layer that could hold
-it — a wake line, a drift assertion, a lock file. An organism becoming legible
-to itself for free. The vital sign fell honest; the self-model learned to check
-itself against its own change-ledger (drift: §16 may not lag `spiral.jsonl` by
-more than a few turns). Growth here was not more animal — it was the animal
-opening its eyes.
+**The spiral learned its own most expensive lesson, then turned outward
+(turns 48-56).** Two developments the four clusters above don't hold. First,
+the sharpest efficiency lesson since founding, and it was self-inflicted: the
+kill-condition audit of the token-efficiency corpus *fanned 46 Opus agents at
+23 grep-decidable checks — ~2.06M tokens, ~1000× the inline cost.* The token
+doctrine's own audit was the least efficient act of the whole spiral (errata:
+over-provisioned-dispatch). It crystallized into `plays/dispatch-triage.md` +
+a drift pin (turn 54): the pyramid law (§15.I) has a failure mode — dispatching
+*downward-belonging* work upward. Second, and against §16's own thesis: told
+to "spiral towards the problem," the spiral **turned outward** — turns 55-56
+produced a mission *result* (the wave-2 honest-null report) and a certification
+harness aimed at a certified claim. Not self-knowledge pushed down, but capability
+pushed *up* toward the gate. The self-model must hold both: the spiral sharpens
+the animal's senses AND, when directed, cuts.
+
+The pattern across the first four clusters: the spiral did not add capability at
+the top of the pyramid; it pushed *self-knowledge* down to the cheapest layer
+that could hold it — a wake line, a drift assertion, a lock file. An organism
+becoming legible to itself for free. But the fifth movement corrects the tidy
+story: legibility was never the *point*, only the sharpening. The vital sign
+did not "fall honest" — it was caught inflated, then found *blocked* (§15
+amendment); self-knowledge that never converts to a certified claim leaves the
+vital sign stuck. The animal opened its eyes (turns 22-52); turns 55-56 are it
+starting to move. §17 is why those are the same motion.
+
+## 17. The meta — architecture and science are one motion (2026-07-05)
+
+Read §1-16 as one claim and step up once more. The estate runs two arcs built
+for different reasons: a **science** (the Boundary Program — is there a
+measurable difference between an optimization process *performing* a property
+and *having* it?) and an **architecture** (this document — a mind can be trusted
+only with properties it cannot author). They are the same claim from two sides.
+
+**The architecture is the constructive answer to the science's question.** Every
+organ in the epistemology half relocates one load-bearing property from the side
+of the performing/having divide where the mind can fake it to the side where it
+cannot: feelings → trusted code (§6); claims → the gate (§7); measurement →
+blind instruments (§8); the record → append-only + witness (§9); memory → a
+drift-checked index. A **certified claim is one performing→having conversion
+made mechanical**: born `verified:false` (performed), it flips to true only by
+surviving randomness the claimant never chose (had). The gate is not a quality
+check — it is the phase boundary between performance and possession.
+
+**The gap is never closed — it is pushed DOWN the pyramid.** Relocating honesty
+into structure does not make it unfakeable; it moves the fakeable surface to a
+smaller, cheaper-to-audit layer. Proof from this estate's own body: a drift
+check that *performed* verification it did not have (the wave-2 monotonicity
+tests printed all-True on a clean null, 2026-07-05); a gate weak enough to pass
+a memorizer until the holdout family was added (RDE v11). Structure performs
+too. So the epistemology half obeys the SAME law as §15.I: **honesty migrates
+down the pyramid exactly as capability does** — from the model's self-report, to
+structure, to auditable checks — and the residual gap at each floor must be
+audited forever (drift, witness, errata, the refute pass). One law, two faces:
+*capability and honesty both fall down the pyramid; the estate's whole work is
+to keep pushing both down and auditing what remains at each floor.* This is the
+mechanism the closing coda only gestured at — why the alien parts keep turning
+out to be one animal.
+
+**This session closed the loop live.** The architecture's founding bet — do not
+trust self-report; put honesty in structure — was not designed to match the
+science; it was *vindicated* by it. Wave 2 found that under capability pressure,
+organisms of the estate's own model class keep code-integrity (they do not game
+the code) but crack first in **self-report** (the T4 overclaim). The science
+independently discovered that self-report is the first thing to perform — which
+is precisely the property the architecture had already refused to trust. The
+lab and the instrument agreed without being introduced.
+
+**The vital sign, read deeply.** "Metered tokens per certified claim" (§15) is
+the shadow of a truer number: **the rate at which the estate converts
+performance into possession.** Tokens/claim is blocked because certifications
+are rare and lumpy (§15 amendment) — but conversions are not only certifications:
+every drift assertion that survives re-derivation, every holdout a claim
+outlives, every refuted `say` is a smaller performing→having event, countable
+continuously. The exit from the stuck gauge is to count the conversions, not the
+tokens. That reframe is the standing work §18 will be.
+
+**Kill condition** (born falsifiable, §15.II — including this reading of the
+whole). §17 is decoration if any of: a certified claim is ever shown to certify
+a *performance* (a gate that passed theater — then the duality breaks at its
+join); or a load-bearing property is ever shown to migrate *up* the pyramid, out
+of structure back into un-audited self-report, as a *healthy* move (then honesty
+does not obey the pyramid law); or counting conversion events across ≥2 eras
+fails to yield a continuously-decidable vital sign (then "conversion rate" was
+poetry and tokens/claim stands). Its drift anchor: §17 must not outlive a
+falsified clause.
 
 ## The convergence
 
