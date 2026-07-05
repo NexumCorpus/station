@@ -8,6 +8,13 @@ form, and the latent next form. One law underneath all of them:*
 
 **Nothing is paid twice. Nothing is trusted once.**
 
+*(The second clause is the aspiration, not the truth. `ROOTS.md` — spiral turn
+60 — locates where it is false: every audit bottoms out on an un-audited seed,
+so trust is not eliminated but MINIMIZED and NAMED. The honest form: nothing is
+trusted BLINDLY; the trust floor is small, located, and non-growing, and its one
+un-pinnable seed — the non-fabrication norm — is trusted on receipts of costly
+behavior, not on faith.)*
+
 The first half (cursors, caches, capsules, molt) is the economy of a mind
 whose every byte of context costs; the second half (gates, holdouts, blind
 instruments) is the epistemology of a mind whose every claim might be
