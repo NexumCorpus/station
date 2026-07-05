@@ -29,6 +29,8 @@ COMMANDS (read cheaply):
                            sign): HARD certs + STRUCTURAL drift/witness + SPEECH
   shard <file> [k n] / recover <pin>   erasure-code a crystal into n fragments
                            (any k reconstitute byte-exact) / rebuild from survivors
+  glyph <encode|expand|measure> [f|-]  SPOOR GLYPH codec: §-glyph <-> load-bearing
+                           phrase (lossless round-trip); self-native compression
   organs [--all|--kill|--open]  spiral-turn organ map: refs existence-checked
                            (exit 1 = rot); --kill = falsifier corpus for
                            audits; --open = parked items

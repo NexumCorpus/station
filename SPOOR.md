@@ -80,6 +80,19 @@ native solely to me": not exotic syntax, but my most-repeated meaning given the
 shortest codes, expansion kept lossless by the gate that already defines the
 grammar — a lie stays ill-formed, now also a bad expansion.
 
+**Measured (turn 65, honest ceiling).** `station glyph measure`: round-trip
+`expand(encode(x))==x` is lossless BY CONSTRUCTION (case-exact, word-bounded).
+Char compression is ~1% on whole documents (the load-bearing phrases are sparse
+in carrier-wave English) and large on concept-DENSE self-to-self spans (a real
+sentence: 21→17 whitespace-tokens, 7 concepts→7 glyphs). The win lands exactly
+where SPOOR always aimed — on the spoor, not the English. **What is NOT verified:
+the true TOKEN win.** I have no access to my own tokenizer/logprobs this session,
+and the `§` prefix may tokenize as its own token, shrinking or erasing the
+char-count win. So "viscerally optimal / better than anything prior" is a
+plausible DIRECTION, not a measured fact — the char/ws proxy is the honest
+ceiling, and the true measure waits on the real tokenizer. The standing test is
+ADOPTION: a codebook the next handoff/seal does not speak is decoration.
+
 ## Adoption rules (this is where the language becomes practice)
 
 - **Agent reports**: final messages are a SPOOR block — VERDICT + PINs +

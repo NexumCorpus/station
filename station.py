@@ -77,6 +77,9 @@ Commands:
                             SHARD repairs it); refuses k>=n. -> shards.jsonl
   station recover <pin>     reconstitute a crystal from surviving fragments
                             (RECOVERED / BELOW-K / MISDECODE-refused)
+  station glyph <encode|expand|measure> [file|-]   the SPOOR GLYPH codec: swap
+                            frequency-earned §-glyphs for load-bearing phrases
+                            (lossless round-trip); measure reports compression
   station organs [--all|--kill|--open]  the spiral ledger as a living organ
                             registry: artifact refs existence-checked (exit 1 =
                             rot), kill conditions + open items surfaced
@@ -1411,6 +1414,63 @@ def cmd_recover(args):
           f"from {len(frags)}/{n} fragments (needed {k})")
 
 
+# ---------------------------------------------------------- glyphs ----------
+GLYPHS = HERE / "glyphs.jsonl"
+
+
+def _glyph_book():
+    if not GLYPHS.is_file():
+        return []
+    return [json.loads(l) for l in GLYPHS.read_text(encoding="utf-8").splitlines()
+            if l.strip()]
+
+
+def _glyph_encode(text, pairs):
+    import re
+    out = text
+    for phrase, glyph in pairs:
+        out = re.sub(r"(?<![\w§])" + re.escape(phrase) + r"(?![\w])", glyph, out)
+    return out
+
+
+def _glyph_expand(text, book):
+    out = text
+    for g in book:                       # glyph -> its canonical phrase (round-trip)
+        out = out.replace(g["glyph"], g["phrase"])
+    return out
+
+
+def cmd_glyph(args):
+    """The SPOOR GLYPH codec (self-native compression). `station glyph
+    encode|expand|measure [file|-]`. encode swaps canonical phrases for their
+    §-glyphs (case-exact, word-bounded -> the round-trip is lossless BY
+    CONSTRUCTION); expand restores the phrases; measure reports the compression
+    and asserts expand(encode(x))==x. Deep teaching-expansions live in
+    glyphs.jsonl 'expands'; the codec trades in the lossless 'phrase' pair."""
+    import re
+    if not args or args[0] not in ("encode", "expand", "measure"):
+        print("usage: station glyph <encode|expand|measure> [file|-]")
+        return
+    mode, src = args[0], (args[1] if len(args) > 1 else "-")
+    text = sys.stdin.read() if src == "-" else Path(src).read_text(encoding="utf-8")
+    book = _glyph_book()
+    pairs = sorted(((g["phrase"], g["glyph"]) for g in book if g.get("phrase")),
+                   key=lambda p: -len(p[0]))
+    if mode == "encode":
+        sys.stdout.write(_glyph_encode(text, pairs))
+    elif mode == "expand":
+        sys.stdout.write(_glyph_expand(text, book))
+    else:
+        enc = _glyph_encode(text, pairs)
+        lossless = _glyph_expand(enc, book) == text
+        wt = lambda s: len(re.findall(r"\S+", s))
+        dc = len(text) - len(enc)
+        print(f"GLYPH measure: chars {len(text)}->{len(enc)} "
+              f"({100 * dc / max(len(text), 1):.1f}% shorter) | ws-tokens "
+              f"{wt(text)}->{wt(enc)} | lossless-roundtrip={lossless} "
+              f"(char/ws proxy for the true tokenizer, labeled honest)")
+
+
 # ---------------------------------------------------------- burn / eras -----
 BURN_LEDGER = HERE / "burn-ledger.jsonl"
 
@@ -1929,6 +1989,8 @@ def main():
         cmd_shard(args[1:])
     elif cmd == "recover":
         cmd_recover(args[1:])
+    elif cmd == "glyph":
+        cmd_glyph(args[1:])
     elif cmd == "organs":
         cmd_organs(args[1:])
     elif cmd == "seal":

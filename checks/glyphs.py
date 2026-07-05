@@ -34,6 +34,9 @@ for r in rows:
         bad.append(f"{g} not §-namespaced")
     if len(e) <= len(g) * 3:
         bad.append(f"{g} does not earn its tokens (expansion too short)")
+    ph = r.get("phrase", "")
+    if ph and len(ph) <= len(g):
+        bad.append(f"{g} phrase '{ph}' not longer than glyph (no char compression)")
     pin = r.get("pin")
     if pin:
         if pin not in sharded:
