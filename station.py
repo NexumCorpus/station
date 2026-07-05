@@ -1303,18 +1303,26 @@ def cmd_conversions():
                 say_had += 1 if body["ok"] is True else 0
             elif r.get("kind") == "conversions" and isinstance(body, dict):
                 prev = body
-    stock = certified + drift_n + witnessed
+    shard_p = HERE / "shards.jsonl"
+    recon = (len({json.loads(ln)["crystal_pin"] for ln
+                  in shard_p.read_text(encoding="utf-8").splitlines() if ln.strip()})
+             if shard_p.is_file() else 0)
+    stock = certified + drift_n + witnessed + recon
     delta = (f" | Δstock since last {stock - prev['stock']:+d}"
              if prev and "stock" in prev else " | (first sample)")
     say_str = f"{say_had}/{say_tot}" if say_tot else "0/0"
     print(f"CONVERSIONS | HARD certified={certified} | STRUCTURAL "
           f"drift-assertions={drift_n} witnessed-ledgers={witnessed} | "
-          f"SPEECH provable-say={say_str} had | stock={stock}{delta}")
-    print("read (§17): performance->possession, DECIDABLE continuously "
-          "(structural layers grow each turn) — unlike §15's blocked ratio")
+          f"SPEECH provable-say={say_str} had | RECON shards={recon} | "
+          f"stock={stock}{delta}")
+    print("read (§17/§18): performance->possession, DECIDABLE continuously "
+          "(structural + RECONSTITUTION layers grow each turn) — unlike §15's "
+          "blocked ratio. RECON counts only deterministic RS shards, never "
+          "LLM-regrows (the panel's guard against certifying a performance)")
     _spine_append("conversions", {"certified": certified, "drift": drift_n,
                                   "witnessed": witnessed, "say_had": say_had,
-                                  "say_tot": say_tot, "stock": stock})
+                                  "say_tot": say_tot, "recon": recon,
+                                  "stock": stock})
 
 
 # --------------------------------------------------------------- shards -----
