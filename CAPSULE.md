@@ -29,6 +29,8 @@ COMMANDS (read cheaply):
                            sign): HARD certs + STRUCTURAL drift/witness + SPEECH
   moat                     SS19 compounding-lead health: PORTABILITY (structure>
                            model) + FULCRUM (direction vs execution) + DESCENT (verb)
+  wall [ledger]            map the recombination wall (novelty-dist x holdout-
+                           margin): THROUGH/PRETENDER/RECOMBINATION; find->map->through
   shard <file> [k n] / recover <pin>   erasure-code a crystal into n fragments
                            (any k reconstitute byte-exact) / rebuild from survivors
   glyph <encode|expand|measure> [f|-]  SPOOR GLYPH codec: §-glyph <-> load-bearing

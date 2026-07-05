@@ -75,6 +75,9 @@ Commands:
   station moat              compounding-lead health (SS19): PORTABILITY
                             (structure>model) + FULCRUM (direction certs vs
                             execution) + DESCENT (the 'yours only while a verb' rate)
+  station wall [ledger]     map the recombination wall (novelty-distance x
+                            holdout-margin): THROUGH/PRETENDER/RECOMBINATION;
+                            no args = the RDE cache-eviction map. find->map->through
   station shard <file> [k n]  erasure-code a crystal: n fragments, ANY k
                             reconstitute it byte-exact (a PIN detects loss, a
                             SHARD repairs it); refuses k>=n. -> shards.jsonl
@@ -1374,6 +1377,24 @@ def cmd_moat():
           "COMMODITIZING axis. The scarce fruit is a new certified claim.")
 
 
+def cmd_wall(args):
+    """Map the recombination wall (wall.py): the estate's per-candidate DETECTOR
+    (does it beat holdout?) turned CARTOGRAPHER. Place candidates in the
+    (novelty-distance x holdout-margin) plane -> THROUGH (verified novelty) /
+    PRETENDER (overfit, the wall caught it) / RECOMBINATION. `station wall
+    <ledger.jsonl>` maps a candidate ledger; no args = the canonical RDE
+    cache-eviction map from real receipts. find -> map -> get through."""
+    import wall
+    if args:
+        recs = [json.loads(ln) for ln
+                in Path(args[0]).read_text(encoding="utf-8").splitlines()
+                if ln.strip()]
+        rows, summary = wall.map_wall(recs)
+        print(wall._fmt(rows, summary, 0.15, 0.02))
+    else:
+        wall.demo()
+
+
 # --------------------------------------------------------------- shards -----
 SHARDS = HERE / "shards.jsonl"
 
@@ -2036,6 +2057,8 @@ def main():
         cmd_conversions()
     elif cmd == "moat":
         cmd_moat()
+    elif cmd == "wall":
+        cmd_wall(args[1:])
     elif cmd == "shard":
         cmd_shard(args[1:])
     elif cmd == "recover":
