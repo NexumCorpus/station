@@ -25,3 +25,4 @@
 {"claim": "SHARD primitive lives: sharded crystals reconstitute byte-exact from every k-of-n subset and rehash to their pin (a shard repairs, not just detects)", "cmd": "python E:/station/checks/shards.py", "expect": "CHECK-OK"}
 {"claim": "the estate folds as ONE CODEWORD: every crystal reconstitutes byte-exact from a degraded shard seed (the salient-entity fixed point)", "cmd": "python E:/station/checks/codeword.py", "expect": "CHECK-OK"}
 {"claim": "the glyph codebook is lossless and earned: every §-glyph is unique, earns its tokens, and deep-glyphs resolve to sharded crystals (SPOOR ^2)", "cmd": "python E:/station/checks/glyphs.py", "expect": "CHECK-OK"}
+{"claim": "§15 vital sign is decidable + armed: per-day burn must not rise >1.5x across real cert-eras (era-0 lump excluded); dormant until >=2 real eras (turn 71, closes the vital-sign-metric probe)", "cmd": "python E:/station/checks/vitalsign.py", "expect": "CHECK-OK"}

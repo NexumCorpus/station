@@ -62,3 +62,13 @@ snapshots, integration across samples double-counts overlapping windows.
   step 7). The metric is now DECIDABLE going forward; era 0 lumps history.
   Next instance: after the next certification closes era 1, evaluate the
   verdict line against a real era pair, then consider arming drift.
+
+## Resolution (2026-07-05, turn 71) — the metric is decidable and ARMED
+
+Era 1 closed (first certified Boundary claim), so >=2 closed eras now exist and
+the last open probe is answered. `checks/vitalsign.py` is armed: per-day metered
+burn must not rise >1.5x across REAL cert-eras (era-0 backfill lump excluded;
+1.5x margin honors "don't punish build eras"). Currently DORMANT (1 real
+cert-era, era 1; the 28-day era-0 lump is excluded as theater) and born-passing;
+it activates when era 2 closes on the next certification, comparing era 1 vs
+era 2. §15 finally has a falsifier that isn't decoration. Problem closed.
