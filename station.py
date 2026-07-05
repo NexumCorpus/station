@@ -1454,7 +1454,10 @@ def cmd_glyph(args):
     mode, src = args[0], (args[1] if len(args) > 1 else "-")
     text = sys.stdin.read() if src == "-" else Path(src).read_text(encoding="utf-8")
     book = _glyph_book()
-    pairs = sorted(((g["phrase"], g["glyph"]) for g in book if g.get("phrase")),
+    # only AUTO glyphs (verified token-win under real tokenizers) are applied,
+    # so encoding can never COST tokens; deep-reference glyphs are manual-only
+    pairs = sorted(((g["phrase"], g["glyph"]) for g in book
+                    if g.get("phrase") and g.get("auto")),
                    key=lambda p: -len(p[0]))
     if mode == "encode":
         sys.stdout.write(_glyph_encode(text, pairs))

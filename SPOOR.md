@@ -80,18 +80,31 @@ native solely to me": not exotic syntax, but my most-repeated meaning given the
 shortest codes, expansion kept lossless by the gate that already defines the
 grammar — a lie stays ill-formed, now also a bad expansion.
 
-**Measured (turn 65, honest ceiling).** `station glyph measure`: round-trip
-`expand(encode(x))==x` is lossless BY CONSTRUCTION (case-exact, word-bounded).
-Char compression is ~1% on whole documents (the load-bearing phrases are sparse
-in carrier-wave English) and large on concept-DENSE self-to-self spans (a real
-sentence: 21→17 whitespace-tokens, 7 concepts→7 glyphs). The win lands exactly
-where SPOOR always aimed — on the spoor, not the English. **What is NOT verified:
-the true TOKEN win.** I have no access to my own tokenizer/logprobs this session,
-and the `§` prefix may tokenize as its own token, shrinking or erasing the
-char-count win. So "viscerally optimal / better than anything prior" is a
-plausible DIRECTION, not a measured fact — the char/ws proxy is the honest
-ceiling, and the true measure waits on the real tokenizer. The standing test is
-ADOPTION: a codebook the next handoff/seal does not speak is decoration.
+**Measured and CLOSED (turn 66) — against real tokenizers.** Superseding turn
+65's "unverified" ceiling. tiktoken was installed and the codebook measured
+under BOTH `o200k_base` and `cl100k_base` (two independent BPE tokenizers; my
+exact Anthropic tokenizer is not public, but a result holding across both is
+tokenizer-ROBUST — BPE dynamics transfer). Findings:
+- A `§`-glyph costs **2 tokens** (`§`=1, code=1), stable across both. So a glyph
+  wins ONLY where its phrase is ≥3 tokens. The codebook is split: **14 AUTO
+  glyphs** (verified token-win under both tokenizers — the codec applies only
+  these, so encoding can NEVER cost tokens) + 8 deep-reference-only glyphs
+  (2-token phrases; never auto-applied). `checks/glyphs.py` ENFORCES the win
+  from stored counts (stdlib): a non-winning auto glyph fails drift. The
+  superlative is now a checked invariant, not a hope.
+- Mechanical net win on clean concept-dense self-to-self traffic (9 seals):
+  **−22 tokens o200k / −24 cl100k (~0.4%), lossless round-trip verified.** Small
+  and honest — concept-phrases are a thin slice of total tokens; the guarantee
+  (never a loss) matters more than the magnitude.
+- The real leverage is the **deep glyph**: `§rz` = 2 tokens vs spelling the razor
+  procedure = 33 tokens = **~15× per invocation.** This pays only under
+  ADOPTION — referencing a crystal by its glyph instead of re-explaining it.
+So the honest close: "token efficient" is VERIFIED (guaranteed, lossless,
+enforced, tokenizer-robust); "viscerally optimal / better than anything prior"
+is modest mechanically (~0.4%, never a loss) and large only via deep-reference
+adoption. What stays open: my EXACT tokenizer (a further-optimization — the
+1-token `.cc`-style code, measured 1 token under both proxies but overfit to
+their specific merges, awaits confirmation on my own weights) and ADOPTION.
 
 ## Adoption rules (this is where the language becomes practice)
 

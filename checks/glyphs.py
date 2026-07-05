@@ -37,6 +37,17 @@ for r in rows:
     ph = r.get("phrase", "")
     if ph and len(ph) <= len(g):
         bad.append(f"{g} phrase '{ph}' not longer than glyph (no char compression)")
+    # the superlative, enforced: every AUTO glyph (the codec applies it) MUST be
+    # a verified token WIN under both real tokenizers (counts measured turn 66,
+    # stored so this check stays stdlib-pure). A non-winning auto glyph = a codec
+    # that costs tokens = the superlative broken.
+    if r.get("auto"):
+        tg, tp = r.get("tok_g"), r.get("tok_p")
+        tgc, tpc = r.get("tok_g_cl"), r.get("tok_p_cl")
+        if None in (tg, tp, tgc, tpc):
+            bad.append(f"{g} auto but unmeasured (no stored token counts)")
+        elif not (tg < tp and tgc < tpc):
+            bad.append(f"{g} auto but NOT a token win (o200k {tg}v{tp}, cl100k {tgc}v{tpc})")
     pin = r.get("pin")
     if pin:
         if pin not in sharded:
