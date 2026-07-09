@@ -238,14 +238,21 @@ class MarketTests(unittest.TestCase):
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        self._market, self._spine = station.MARKET, station.SPINE
+        self._market, self._packs, self._spine = (station.MARKET,
+                                                  station.MARKET_PACKS,
+                                                  station.SPINE)
         station.MARKET = self.tmp / "market.jsonl"
+        station.MARKET_PACKS = self.tmp / "packs"
         station.SPINE = self.tmp / "spine.jsonl"
         self.proof = self.tmp / "proof.txt"
         self.proof.write_text("verified evidence", encoding="utf-8")
+        self.receipt = self.tmp / "receipt.txt"
+        self.receipt.write_text("external payment receipt", encoding="utf-8")
 
     def tearDown(self):
-        station.MARKET, station.SPINE = self._market, self._spine
+        station.MARKET, station.MARKET_PACKS, station.SPINE = (self._market,
+                                                                 self._packs,
+                                                                 self._spine)
 
     def _thesis(self):
         return {
@@ -286,8 +293,18 @@ class MarketTests(unittest.TestCase):
                             "meeting notes: buyer requested scope"])
         self.assertEqual(station._fold_market()["proof-offer"]["status"], "INTEREST")
         station.cmd_market(["score", "proof-offer", "PAID",
-                            "receipt:E:/receipts/example.pdf"])
+                            f"receipt:{self.receipt}"])
         self.assertEqual(station._fold_market()["proof-offer"]["status"], "PAID")
+
+    def test_market_pack_carries_hashes_and_kill_condition(self):
+        self._arm()
+        station.cmd_market(["verify", "proof-offer"])
+        station.cmd_market(["pack", "proof-offer"])
+        packet = station.MARKET_PACKS / "proof-offer.md"
+        body = packet.read_text(encoding="utf-8")
+        self.assertIn("sha256:", body)
+        self.assertIn(self._thesis()["kill"], body)
+        self.assertIn("does not claim customer demand", body)
 
 
 class OrganTests(unittest.TestCase):

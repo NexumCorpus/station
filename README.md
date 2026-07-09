@@ -14,7 +14,7 @@ same bytes.
 | `station log <name>` | cursor read: only bytes appended since last read; glob paths resolve the newest file with per-file cursors; `--tail N` peeks, `--full` dumps |
 | `station say / recheck / retire` | **provable speech**: a claim's re-derivation route runs at write (false claims land as `refuted`, never fact); facts are re-walked autonomically — newest-per-route, moment-facts retirable, world-moves alarm as `stale` |
 | `station seal <ledger>` | clock-stamped attributed ledger append (stdin JSON; hand-typed timestamps are discarded — they drifted +48 min in practice) |
-| `station market` | evidence-bound commercial hypotheses; `PAID` is legal only with a receipt pointer, so income is an external signal rather than an agent claim |
+| `station market` | evidence-bound commercial hypotheses; `pack` renders a hash-carrying scope note and `PAID` is legal only with a local receipt pointer |
 | `station burn / eras / vitals / quota` | persistent daily burn counter + **per-certification-era accounting**: the "metered tokens per certified claim, trending down" vital sign in decidable form |
 | `station drift / witness / backup / rescue` | executable cross-reference assertions · append-only notary (alarms on history rewrite) · continuity mirror · offsite snapshots of *untracked* work |
 | `station note / spine / tally / map / cure / errata / pin` | telegraph · filtered event reads · ledger stats · AST outlines · grimoire lookup · self-error ledger · content-hash pointers |

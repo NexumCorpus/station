@@ -53,9 +53,10 @@ COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
   errata [add cls what paid guard]  self-error ledger + live distribution
   preregs [score <id> <v> <ev>]  armed kill conditions w/ due dates (Law II
                            scheduler); wake surfaces overdue; FAIL = working
-  market [arm|score|<id>]  evidence-bound income hypotheses: arm JSON from
+  market [arm|score|pack|verify|<id>]  evidence-bound income hypotheses: arm JSON from
                            stdin with local proofs + buyer/problem/test/kill;
-                           PAID needs receipt:<pointer>, never self-report
+                           pack/verify re-derive a buyer-readable proof packet;
+                           PAID needs receipt:<local-file>, never self-report
   cure "<fragment>"        grimoire lookup FIRST on any error
   pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
 

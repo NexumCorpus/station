@@ -1010,12 +1010,80 @@ def _market_show(record: dict):
           + (f" | last: {signal.get('evidence', '')[:120]}" if signal else ""))
 
 
+def _market_receipts(evidence: str) -> list[Path]:
+    """Receipt pointers are local artifacts, not text a model can simply say."""
+    return [Path(p) for p in re.findall(r"receipt:([^\s]+)", evidence,
+                                        flags=re.IGNORECASE)]
+
+
+def _market_verify(record: dict) -> list[str]:
+    """Return every broken proof edge. Empty means the thesis is internally ready.
+
+    This does not certify demand or income; it only proves that the package is
+    connected to current local evidence rather than a stale narrative.
+    """
+    problems = [f"missing proof: {proof}" for proof in record["proofs"]
+                if not Path(proof).is_file()]
+    signal = record.get("last_signal", {})
+    if record.get("status") == "PAID":
+        receipts = _market_receipts(str(signal.get("evidence", "")))
+        if not receipts:
+            problems.append("PAID has no receipt pointer")
+        problems += [f"missing receipt: {receipt}" for receipt in receipts
+                     if not receipt.is_file()]
+    return problems
+
+
+def _market_pack(record: dict) -> Path:
+    """Render a proof-carrying scope note, never promotional copy."""
+    problems = _market_verify(record)
+    if problems:
+        raise ValueError("; ".join(problems))
+    hashes = []
+    for proof in record["proofs"]:
+        data = Path(proof).read_bytes()
+        hashes.append((proof, hashlib.sha256(data).hexdigest()[:16]))
+    lines = [
+        f"# Evidence-bound offer: {record['id']}",
+        "",
+        f"Status: **{record.get('status', 'armed')}** — a commercial hypothesis, not revenue.",
+        "",
+        "## Buyer / problem",
+        f"- Buyer: {record['buyer']}",
+        f"- Problem: {record['problem']}",
+        "",
+        "## Proposed scope",
+        record["offer"],
+        "",
+        "## Verifiable evidence",
+        *[f"- `{path}` — sha256:{sha}" for path, sha in hashes],
+        "",
+        "## External test",
+        record["test"],
+        "",
+        "## Kill condition",
+        record["kill"],
+        f"Due: {record['due']}",
+        "",
+        "## Boundary",
+        "This packet does not claim customer demand, payment, safety certification, or a discovery result. A payment event requires a local receipt pointer in the append-only market ledger.",
+        "",
+    ]
+    MARKET_PACKS.mkdir(parents=True, exist_ok=True)
+    out = MARKET_PACKS / f"{record['id']}.md"
+    tmp = out.with_suffix(".tmp")
+    tmp.write_text("\n".join(lines), encoding="utf-8")
+    os.replace(tmp, out)
+    return out
+
+
 def cmd_market(args_: list):
     """Evidence-bound commercial hypotheses.
 
     `station market arm` reads one thesis JSON object from stdin. `score` records
     an external signal; `PAID` requires a receipt pointer in its evidence.
-    `station market [id]` lists the living hypotheses. This command never sends
+    `station market pack <id>` generates an evidence-bound scope note and
+    `verify <id>` re-derives its local proof edges. This command never sends
     outreach, quotes a customer, or represents a revenue event by itself.
     """
     rows = _fold_market()
@@ -1061,9 +1129,11 @@ def cmd_market(args_: list):
         if verdict not in MARKET_VERDICTS:
             print("market verdict must be " + ", ".join(MARKET_VERDICTS))
             sys.exit(1)
-        if verdict == "PAID" and "receipt:" not in evidence.lower():
-            print("PAID requires an evidence string containing receipt:<pointer>; revenue is not self-report")
-            sys.exit(1)
+        if verdict == "PAID":
+            receipts = _market_receipts(evidence)
+            if not receipts or any(not receipt.is_file() for receipt in receipts):
+                print("PAID requires receipt:<existing-local-file>; revenue is not self-report")
+                sys.exit(1)
         signal = {"kind": "signal", "id": ident, "verdict": verdict,
                   "evidence": evidence, "t": _now(), "by": _market_actor()}
         _append_line(MARKET, json.dumps(signal) + "\n")
@@ -1071,10 +1141,26 @@ def cmd_market(args_: list):
                                          "evidence": evidence[:160]})
         print(f"[market] {ident} -> {verdict}")
         return
+    if op in ("pack", "verify"):
+        if len(args_) != 2 or args_[1] not in rows:
+            print(f"usage: station market {op} <id>; known: {', '.join(rows)}")
+            sys.exit(1)
+        record = rows[args_[1]]
+        problems = _market_verify(record)
+        if problems:
+            print("MARKET-ROT " + " | ".join(problems))
+            sys.exit(1)
+        if op == "verify":
+            print(f"MARKET-READY {record['id']} status={record.get('status', 'armed')} proofs={len(record['proofs'])}")
+            return
+        out = _market_pack(record)
+        _spine_append("market-pack", {"id": record["id"], "path": str(out)})
+        print(f"[market] pack -> {out}")
+        return
     if op in rows:
         _market_show(rows[op])
         return
-    print("usage: station market [arm|score <id> <verdict> <evidence...>|<id>]")
+    print("usage: station market [arm|score <id> <verdict> <evidence...>|pack|verify <id>|<id>]")
     sys.exit(1)
 
 
