@@ -38,8 +38,9 @@ Commands:
   station preregs [score <id> <verdict> <evidence...>]  armed kill conditions
                             with due dates (Law II's scheduler); wake surfaces
                             overdue arms; FAIL verdicts are the system working
-  station market [arm|score|<id>]  evidence-bound income hypotheses: local proof
-                            + external test + kill; PAID requires receipt pointer
+  station market [arm|score|pack|verify|<id>]  evidence-bound income hypotheses:
+                            local proof + external test + kill; PAID requires an
+                            existing local receipt pointer
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it

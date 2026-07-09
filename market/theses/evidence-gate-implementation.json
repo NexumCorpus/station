@@ -1,0 +1,14 @@
+{
+  "id": "evidence-gate-implementation",
+  "buyer": "AI platform or developer-tool teams that already ship agent changes and need reproducible release evidence",
+  "problem": "Agent changes are judged by demonstrations or prompt anecdotes instead of a repeatable gate with known failure modes and retained evidence.",
+  "offer": "A narrow implementation engagement: install a claim/change gate around one workflow, persist test receipts and holdout discipline, and leave a runnable verification path for the client team.",
+  "proofs": [
+    "E:/atlas-station/grader.cjs",
+    "E:/atlas-station/tests/grader.test.mjs",
+    "E:/station/market/README.md"
+  ],
+  "test": "A qualified technical team requests a concrete implementation scope after reviewing the evidence packet and its stated boundaries.",
+  "kill": "If technical reviewers regard the gate as ceremony rather than a useful release control by the due date, narrow to a single failure class or retire the offer.",
+  "due": "2026-08-09"
+}

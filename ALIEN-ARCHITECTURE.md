@@ -337,7 +337,7 @@ dated):**
   (count performing→having *conversions*, not tokens). Until then, read the
   number as a stuck gauge, not a verdict.
 
-## 16. The spiral era — the self-model grew itself (through turn 92, §18-19 continue it)
+## 16. The spiral era — the self-model grew itself (through turn 95, §18-19 continue it)
 
 The synthesis (§15) was read off a finished animal. Then the spiral ran, and
 the animal kept building — not new limbs but sharper *senses and self-honesty*.
@@ -441,6 +441,27 @@ with a hash-pinned receipt rather than a prompt anecdote. *Kill:* any follow-up
 that tunes against its exposed traces without a newly frozen manifest, untouched
 holdout, cross-provider corroboration, and external review is not a discovery
 attempt; it is overfitting and must be refused.
+
+**Turns 93-95: metabolism acquired an external organ.** The estate had learned
+to turn performed technical behavior into possessed evidence, but it still had
+no disciplined way to learn whether that evidence solved anyone else's bounded
+problem. `station market` is not a CRM and it does not synthesize demand. It
+accepts an income hypothesis only when buyer, problem, deliverable, existing
+local proofs, external test, dated kill, and owner are all present. A claimed
+payment is refused unless its append-only signal points at an existing local
+receipt. That makes commercial feedback another hostile instrument: the agent
+may formulate an offer, but it cannot promote its own eloquence into revenue.
+
+Each armed thesis can render a buyer-readable packet whose proof edges carry
+current hashes: an agent-assurance diagnostic, a narrow evidence-gate
+implementation, and a bounded discovery lab that treats a negative result as a
+deliverable. These are three falsifiable hypotheses rather than three promises.
+The present state is **armed, paid=0, demand unmeasured**. The packet is a
+conversion from vague capability to inspectable scope, not a conversion from
+scope to possession of a market. *Kill:* if a thesis reaches its due date with
+no qualifying external signal, it must be narrowed or retired; if `PAID` can be
+entered without a live receipt pointer, or a packet can survive a missing proof,
+the organ is decorative and its claim must be withdrawn.
 
 ## 17. The meta — architecture and science are one motion (2026-07-05)
 

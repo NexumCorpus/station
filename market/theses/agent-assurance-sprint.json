@@ -1,0 +1,14 @@
+{
+  "id": "agent-assurance-sprint",
+  "buyer": "Product and engineering teams deploying a tool-using agent or coding automation",
+  "problem": "The team cannot yet show which actions its agent may take, how failures are detected, or whether a behavior still holds after a change.",
+  "offer": "A bounded assurance diagnostic for one real workflow: action-tier map, concrete failure cases, a reproducible check route, an adversarial test plan, and an operator handoff packet.",
+  "proofs": [
+    "E:/atlas-station/grader.cjs",
+    "E:/atlas-station/docs/CODEX_PROVIDER.md",
+    "E:/station/ALIEN-ARCHITECTURE.md"
+  ],
+  "test": "A qualified buyer reviews the proof packet and asks for a scoped diagnostic against one named workflow.",
+  "kill": "If no qualified buyer asks for a scoped diagnostic by the due date, narrow the buyer/problem or retire this offer rather than asserting latent demand.",
+  "due": "2026-08-09"
+}
