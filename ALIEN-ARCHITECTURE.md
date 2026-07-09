@@ -337,7 +337,7 @@ dated):**
   (count performing→having *conversions*, not tokens). Until then, read the
   number as a stuck gauge, not a verdict.
 
-## 16. The spiral era — the self-model grew itself (through turn 87, §18-19 continue it)
+## 16. The spiral era — the self-model grew itself (through turn 92, §18-19 continue it)
 
 The synthesis (§15) was read off a finished animal. Then the spiral ran, and
 the animal kept building — not new limbs but sharper *senses and self-honesty*.
@@ -422,6 +422,25 @@ cockpit with a new result about the world. *Kill:* if the discovery route emits
 a certified crossing without its hidden and meta holdouts, or if the cockpit
 claims an autonomy loop that fails under a live provider run, these turns are
 presentation rather than possession and must be narrowed or retired.
+
+**Turns 88-92: the executor became plural in a way the record can see.** The
+Codex transport was not merely substituted for a failed Claude subscription.
+Task-risk routing sends implementation, orchestration, and reflection to the
+locally-probed deep route, while bounded reading, research fan-out, and memory
+compression take the faster route; a resumed conversation pins its original
+assignment. The RDE then made the corresponding epistemic distinction explicit:
+different OpenAI models create intra-family friction, not independent
+corroboration. Every result, claim, and audit bundle carries that grade.
+
+The first campaign under this discipline was frozen before execution: domain,
+roster, one-iteration budget, claim mode, evidence requirements, and kill
+conditions were machine-checked. It produced a useful negative. A grounded
+blended cache policy was exposed on adversarial traces, lay below the adaptive
+human baseline, and had no robust beat. The failure is now an addressable object
+with a hash-pinned receipt rather than a prompt anecdote. *Kill:* any follow-up
+that tunes against its exposed traces without a newly frozen manifest, untouched
+holdout, cross-provider corroboration, and external review is not a discovery
+attempt; it is overfitting and must be refused.
 
 ## 17. The meta — architecture and science are one motion (2026-07-05)
 
