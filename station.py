@@ -38,6 +38,8 @@ Commands:
   station preregs [score <id> <verdict> <evidence...>]  armed kill conditions
                             with due dates (Law II's scheduler); wake surfaces
                             overdue arms; FAIL verdicts are the system working
+  station market [arm|score|<id>]  evidence-bound income hypotheses: local proof
+                            + external test + kill; PAID requires receipt pointer
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
@@ -122,6 +124,8 @@ CURSORS = HERE / "cursors"
 WILL = HERE / "WILL.md"
 ERRATA = HERE / "errata.jsonl"
 SPIRAL = HERE / "spiral.jsonl"
+MARKET = HERE / "market.jsonl"
+MARKET_PACKS = HERE / "market"
 SUITE_TIMEOUT_S = 900
 
 
@@ -418,6 +422,20 @@ def cmd_wake():
             lines.append(f"preregs DUE: {', '.join(due)} -> station preregs")
     except (json.JSONDecodeError, KeyError):
         pass
+    try:
+        market = _fold_market()
+        if market:
+            states = {}
+            for row in market.values():
+                states[row.get("status", "armed")] = states.get(row.get("status", "armed"), 0) + 1
+            due = [row["id"] for row in market.values()
+                   if row.get("status") == "armed" and row.get("due", "9999") < _now()[:10]]
+            summary = " ".join(f"{state}={count}" for state, count in sorted(states.items()))
+            lines.append(f"market {len(market)} theses | {summary}"
+                         + (f" | DUE: {', '.join(due)}" if due else "")
+                         + " -> station market")
+    except (json.JSONDecodeError, KeyError):
+        pass
     lines += _log_freshness(reg)
     if SPINE.is_file():
         events = SPINE.read_text(encoding="utf-8").splitlines()
@@ -649,6 +667,7 @@ def cmd_backup():
         (HERE / "coggate-ledger.jsonl", dest / "station" / "coggate-ledger.jsonl"),
         (HERE / "burn-ledger.jsonl", dest / "station" / "burn-ledger.jsonl"),
         (HERE / "preregs.jsonl", dest / "station" / "preregs.jsonl"),
+        (HERE / "market.jsonl", dest / "station" / "market.jsonl"),
         (HERE / "shards.jsonl", dest / "station" / "shards.jsonl"),
         (CURSORS / "witness.json", dest / "station" / "witness.json"),
         (Path("E:/atlas-station/CLAIMS.json"), dest / "atlas" / "CLAIMS.json"),
@@ -931,6 +950,132 @@ def cmd_preregs(args_: list):
               f" due={r.get('due', '-')} | {r['rule'][:90]}")
         if state == "armed":
             print(f"      score: {r.get('score_hint', '-')[:100]}")
+
+
+# -------------------------------------------------------------- market ------
+# The market is an external grader. A capability becomes an income hypothesis
+# only when a buyer can reject it; revenue is not a model assertion but a
+# receipt-bearing event. This ledger keeps product discovery as falsifiable as
+# technical discovery, without sending messages or making commitments itself.
+MARKET_REQUIRED = ("id", "buyer", "problem", "offer", "proofs", "test",
+                   "kill", "due")
+MARKET_VERDICTS = ("INTEREST", "PAID", "REJECTED", "NARROWED")
+
+
+def _market_actor() -> str:
+    return os.environ.get("STATION_ACTOR", f"pid{os.getpid()}")
+
+
+def _fold_market() -> dict:
+    """Fold append-only market theses and external signals by opportunity id."""
+    rows = {}
+    if not MARKET.is_file():
+        return rows
+    for line in MARKET.read_text(encoding="utf-8-sig").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        if record.get("kind") == "thesis":
+            rows[record["id"]] = record
+        elif record.get("kind") == "signal" and record.get("id") in rows:
+            rows[record["id"]]["status"] = record["verdict"]
+            rows[record["id"]]["last_signal"] = record
+    return rows
+
+
+def _validate_market_thesis(record: dict):
+    missing = [key for key in MARKET_REQUIRED if not record.get(key)]
+    if missing:
+        raise ValueError("missing required fields: " + ", ".join(missing))
+    if not isinstance(record["proofs"], list) or not record["proofs"]:
+        raise ValueError("proofs must be a non-empty list of local paths")
+    for proof in record["proofs"]:
+        if not isinstance(proof, str) or not Path(proof).is_file():
+            raise ValueError(f"proof does not exist: {proof!r}")
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{2,63}", str(record["id"])):
+        raise ValueError("id must be 3-64 lowercase letters, digits, or hyphens")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(record["due"])):
+        raise ValueError("due must be YYYY-MM-DD")
+
+
+def _market_show(record: dict):
+    signal = record.get("last_signal", {})
+    print(f"{record.get('status', 'armed'):<9} {record['id']:<28} due={record['due']}"
+          f" | buyer={record['buyer'][:52]}")
+    print(f"  problem: {record['problem'][:160]}")
+    print(f"  offer: {record['offer'][:160]}")
+    print(f"  test: {record['test'][:160]}")
+    print(f"  kill: {record['kill'][:160]}")
+    print(f"  proofs: {len(record['proofs'])}"
+          + (f" | last: {signal.get('evidence', '')[:120]}" if signal else ""))
+
+
+def cmd_market(args_: list):
+    """Evidence-bound commercial hypotheses.
+
+    `station market arm` reads one thesis JSON object from stdin. `score` records
+    an external signal; `PAID` requires a receipt pointer in its evidence.
+    `station market [id]` lists the living hypotheses. This command never sends
+    outreach, quotes a customer, or represents a revenue event by itself.
+    """
+    rows = _fold_market()
+    if not args_:
+        today = _now()[:10]
+        if not rows:
+            print("market empty | arm a thesis with: station market arm < thesis.json")
+            return
+        for record in rows.values():
+            _market_show(record)
+            if record.get("status") == "armed" and record.get("due", "9999") < today:
+                print("  DUE: score INTEREST, PAID, REJECTED, or NARROWED; do not let a thesis age into lore")
+        return
+    op = args_[0]
+    if op == "arm":
+        try:
+            raw = sys.stdin.read()
+            record = json.loads(raw)
+            if not isinstance(record, dict):
+                raise ValueError("thesis must be a JSON object")
+            _validate_market_thesis(record)
+            if record["id"] in rows:
+                raise ValueError(f"market thesis already exists: {record['id']}")
+        except (json.JSONDecodeError, ValueError) as exc:
+            print(f"market arm refused: {exc}")
+            sys.exit(1)
+        entry = {key: record[key] for key in MARKET_REQUIRED}
+        entry.update({"kind": "thesis", "status": "armed", "t": _now(),
+                      "by": _market_actor()})
+        _append_line(MARKET, json.dumps(entry) + "\n")
+        _spine_append("market-arm", {"id": entry["id"], "due": entry["due"],
+                                      "buyer": entry["buyer"][:80]})
+        print(f"[market] armed {entry['id']} | due={entry['due']} | proofs={len(entry['proofs'])}")
+        return
+    if op == "score":
+        if len(args_) < 4:
+            print("usage: station market score <id> <INTEREST|PAID|REJECTED|NARROWED> <evidence...>")
+            sys.exit(1)
+        ident, verdict, evidence = args_[1], args_[2].upper(), " ".join(args_[3:])
+        if ident not in rows:
+            print(f"unknown market thesis {ident}; known: {', '.join(rows)}")
+            sys.exit(1)
+        if verdict not in MARKET_VERDICTS:
+            print("market verdict must be " + ", ".join(MARKET_VERDICTS))
+            sys.exit(1)
+        if verdict == "PAID" and "receipt:" not in evidence.lower():
+            print("PAID requires an evidence string containing receipt:<pointer>; revenue is not self-report")
+            sys.exit(1)
+        signal = {"kind": "signal", "id": ident, "verdict": verdict,
+                  "evidence": evidence, "t": _now(), "by": _market_actor()}
+        _append_line(MARKET, json.dumps(signal) + "\n")
+        _spine_append("market-signal", {"id": ident, "verdict": verdict,
+                                         "evidence": evidence[:160]})
+        print(f"[market] {ident} -> {verdict}")
+        return
+    if op in rows:
+        _market_show(rows[op])
+        return
+    print("usage: station market [arm|score <id> <verdict> <evidence...>|<id>]")
+    sys.exit(1)
 
 
 def cmd_rescue(repo: str):
@@ -2125,6 +2270,8 @@ def main():
         cmd_backup()
     elif cmd == "preregs":
         cmd_preregs(args[1:])
+    elif cmd == "market":
+        cmd_market(args[1:])
     elif cmd == "lease":
         cmd_lease(args[1:])
     elif cmd == "rescue":

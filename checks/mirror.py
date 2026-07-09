@@ -11,11 +11,14 @@ PAIRS = [
     ("E:/station/spine.jsonl", "E:/continuity/station/spine.jsonl"),
     ("E:/station/grimoire.jsonl", "E:/continuity/station/grimoire.jsonl"),
     ("E:/station/spiral.jsonl", "E:/continuity/station/spiral.jsonl"),
+    ("E:/station/market.jsonl", "E:/continuity/station/market.jsonl"),
     ("E:/atlas-station/CLAIMS.json", "E:/continuity/atlas/CLAIMS.json"),
 ]
 bad = []
 for src_p, mir_p in PAIRS:
     src, mir = Path(src_p), Path(mir_p)
+    if not src.is_file():
+        continue                              # unborn ledger: no history to mirror
     if not mir.is_file():
         bad.append(f"{mir.name}:MISSING")
         continue

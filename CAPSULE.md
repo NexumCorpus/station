@@ -53,6 +53,9 @@ COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
   errata [add cls what paid guard]  self-error ledger + live distribution
   preregs [score <id> <v> <ev>]  armed kill conditions w/ due dates (Law II
                            scheduler); wake surfaces overdue; FAIL = working
+  market [arm|score|<id>]  evidence-bound income hypotheses: arm JSON from
+                           stdin with local proofs + buyer/problem/test/kill;
+                           PAID needs receipt:<pointer>, never self-report
   cure "<fragment>"        grimoire lookup FIRST on any error
   pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
 
@@ -70,7 +73,8 @@ COMMANDS (free layer + hand):
   hand "<task>"|take|status  stigmergic tasking of the jailed WSL agent
   wsl [user] <src>|-       run script in WSL, bytes-not-quotes joint
 
-FILES: spine.jsonl (events), burn-ledger.jsonl (SS15 counter), spiral.jsonl
+FILES: spine.jsonl (events), burn-ledger.jsonl (SS15 counter), spiral.jsonl,
+  market.jsonl (external-demand hypotheses/signals; not revenue without receipt)
   (turn ledger), errata.jsonl, grimoire.jsonl, drift.jsonl, cursors/,
   THINKING/ (open reasoning ledgers), plays/, templates/, checks/.
 DESIGN: stigmergy, cursors (never pay twice), one spine, dense wire.

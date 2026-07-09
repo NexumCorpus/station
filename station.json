@@ -61,6 +61,7 @@
   "E:/station/errata.jsonl",
   "E:/station/burn-ledger.jsonl",
   "E:/station/preregs.jsonl",
+  "E:/station/market.jsonl",
   "E:/station/shards.jsonl"
  ],
  "logs": {
@@ -70,6 +71,7 @@
   "f2f": "E:/atlas-station/docs/collab/f2f/transcript.md",
   "mission1": "E:/mission-runs/wave1.log",
   "wave2": "E:/mission-runs/wave2.log",
+  "market": "E:/station/market.jsonl",
   "digest": "E:/station/digests/*.md"
  }
 }

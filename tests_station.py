@@ -233,6 +233,63 @@ class PreregTests(unittest.TestCase):
             station.PREREGS, station.SPINE = _p, _s
 
 
+class MarketTests(unittest.TestCase):
+    """Income is only an external signal if the ledger refuses self-report."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self._market, self._spine = station.MARKET, station.SPINE
+        station.MARKET = self.tmp / "market.jsonl"
+        station.SPINE = self.tmp / "spine.jsonl"
+        self.proof = self.tmp / "proof.txt"
+        self.proof.write_text("verified evidence", encoding="utf-8")
+
+    def tearDown(self):
+        station.MARKET, station.SPINE = self._market, self._spine
+
+    def _thesis(self):
+        return {
+            "id": "proof-offer", "buyer": "an engineering team",
+            "problem": "agent behavior cannot be reproduced",
+            "offer": "an evidence-bound reliability diagnostic",
+            "proofs": [str(self.proof)],
+            "test": "a buyer asks to review the scope",
+            "kill": "no qualified external signal by due date",
+            "due": "2099-01-01",
+        }
+
+    def _arm(self):
+        import io
+        old_stdin = sys.stdin
+        sys.stdin = io.StringIO(json.dumps(self._thesis()))
+        try:
+            station.cmd_market(["arm"])
+        finally:
+            sys.stdin = old_stdin
+
+    def test_market_arm_requires_existing_proof_and_folds(self):
+        self._arm()
+        row = station._fold_market()["proof-offer"]
+        self.assertEqual(row["status"], "armed")
+        self.assertEqual(row["proofs"], [str(self.proof)])
+        self.assertEqual(self._spine_events()[-1]["kind"], "market-arm")
+
+    def _spine_events(self):
+        return [json.loads(line) for line in
+                station.SPINE.read_text(encoding="utf-8").splitlines()]
+
+    def test_paid_signal_requires_receipt_pointer(self):
+        self._arm()
+        with self.assertRaises(SystemExit):
+            station.cmd_market(["score", "proof-offer", "PAID", "someone said yes"])
+        station.cmd_market(["score", "proof-offer", "INTEREST",
+                            "meeting notes: buyer requested scope"])
+        self.assertEqual(station._fold_market()["proof-offer"]["status"], "INTEREST")
+        station.cmd_market(["score", "proof-offer", "PAID",
+                            "receipt:E:/receipts/example.pdf"])
+        self.assertEqual(station._fold_market()["proof-offer"]["status"], "PAID")
+
+
 class OrganTests(unittest.TestCase):
     """station organs (spiral turn 51): the ledger read as a registry."""
 
