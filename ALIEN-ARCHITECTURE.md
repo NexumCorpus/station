@@ -337,7 +337,7 @@ dated):**
   (count performing→having *conversions*, not tokens). Until then, read the
   number as a stuck gauge, not a verdict.
 
-## 16. The spiral era — the self-model grew itself (through turn 69, §18-19 continue it)
+## 16. The spiral era — the self-model grew itself (through turn 87, §18-19 continue it)
 
 The synthesis (§15) was read off a finished animal. Then the spiral ran, and
 the animal kept building — not new limbs but sharper *senses and self-honesty*.
@@ -394,6 +394,34 @@ did not "fall honest" — it was caught inflated, then found *blocked* (§15
 amendment); self-knowledge that never converts to a certified claim leaves the
 vital sign stuck. The animal opened its eyes (turns 22-52); turns 55-56 are it
 starting to move. §17 is why those are the same motion.
+
+**Turns 70-87: direction acquired routes, instruments, and a cockpit.** The
+next movement did not prove that the estate had crossed the recombination wall.
+It made that distinction harder to blur. The Boundary wave-2 null was certified
+only at its stated code-integrity scope; Wave 3 was pre-registered before data;
+and the wall machinery was sharpened into `discover.py`'s sequence of map-fill,
+hidden selection holdout, and untouched meta-holdout. Its deterministic domain is
+an instrument and a falsifier of the protocol, not evidence that a real discovery
+has happened. The canonical RDE map still has to earn a THROUGH point on fresh
+data.
+
+The same turns made the route usable rather than merely described. The cockpit
+now renders pivotal command packets as real choices, keeps a freehand path, and
+offers a time-bounded autonomy window. Those are coordination organs: they make
+human direction, agent execution, and the resulting record meet in one surface.
+Their live loop was explicitly left as a verification obligation, not promoted
+from code inspection to fact. The crisp-neon passes that followed were likewise
+UI work with a stated visual-review gap, not evidence of a cognitive gain.
+
+**The correction to the self-model is structural.** A spiral can now improve
+reliability, measurement, discovery protocol, or interaction without being
+called discovery itself. A candidate is only a crossing after independent
+holdouts and a cleared-noise margin; a useful engineering turn is still usually
+RECOMBINATION. This distinction is the guard against confusing a more capable
+cockpit with a new result about the world. *Kill:* if the discovery route emits
+a certified crossing without its hidden and meta holdouts, or if the cockpit
+claims an autonomy loop that fails under a live provider run, these turns are
+presentation rather than possession and must be narrowed or retired.
 
 ## 17. The meta — architecture and science are one motion (2026-07-05)
 
