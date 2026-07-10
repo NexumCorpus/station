@@ -32,6 +32,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -40,7 +41,10 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from station import llm, llm_up                            # noqa: E402
 
-MODEL = "qwen2.5-coder:7b"
+# Hermes is a schema/reading specialist; coding models stay assigned to build
+# routes. Override only when a local operator has deliberately installed a
+# different reader model.
+MODEL = os.environ.get("HERMES_MODEL", "hermes3:8b")
 CHUNK_BYTES = 28_000          # ~7K tokens: worker keeps headroom in 16K ctx
 NUM_CTX = 16_384              # ollama default 4-8K silently truncates (rlm.md)
 MAX_CALLS = 64

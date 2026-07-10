@@ -77,6 +77,8 @@ COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
   suture [seal|verify|<id>] passive context transport: immutable exact byte
                            slices from registered roots; ROT=payload loss,
                            SOURCE-DRIFT=historical bytes no longer current
+  hermes ask <file>|- "<q>"  bounded local Hermes map-reduce reader; records
+                           counts and advisory scope through the Atlas CLI seam
   cure "<fragment>"        grimoire lookup FIRST on any error
   pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
 

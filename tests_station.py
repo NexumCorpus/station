@@ -49,6 +49,7 @@ class StationTests(unittest.TestCase):
         self.assertIn("timeout", output)
         self.assertLess(time.monotonic() - start, 3)
 
+
     def test_say_true_claim_lands_as_fact(self):
         station.cmd_say(["a true thing", "--cmd", "cmd /c echo yes-42",
                         "--expect", "yes-42"])
@@ -221,6 +222,36 @@ class StationTests(unittest.TestCase):
                        .splitlines()[-1])
         self.assertEqual(e["cls"], "test-class")
         self.assertEqual(e["guard"], "the guard")
+
+
+class HermesBridgeTests(unittest.TestCase):
+    """The Atlas-facing seam keeps Hermes advisory and records its counts."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self._spine = station.SPINE
+        station.SPINE = self.tmp / "spine.jsonl"
+        import hermes
+        self.hermes = hermes
+        self._ask, self._read = hermes.ask, hermes._read_any
+        hermes._read_any = lambda path: path.read_text(encoding="utf-8")
+        hermes.ask = lambda corpus, question, grep=None: {
+            "answer": f"read:{question}:{len(corpus)}", "calls": 1,
+            "depth": 0, "chunks": 1, "bytes_read": len(corpus),
+        }
+
+    def tearDown(self):
+        station.SPINE = self._spine
+        self.hermes.ask, self.hermes._read_any = self._ask, self._read
+
+    def test_cli_bridge_records_advisory_read(self):
+        source = self.tmp / "source.txt"
+        source.write_text("abc", encoding="utf-8")
+        station.cmd_hermes(["ask", str(source), "what is here?"])
+        event = json.loads(station.SPINE.read_text(encoding="utf-8").splitlines()[-1])
+        self.assertEqual(event["kind"], "hermes-read")
+        self.assertEqual(event["body"]["calls"], 1)
+        self.assertEqual(event["body"]["bytes"], 3)
 
 
 class PreregTests(unittest.TestCase):

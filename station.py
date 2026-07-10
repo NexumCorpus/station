@@ -53,6 +53,8 @@ Commands:
                             organs; append a deterministic observation receipt
   station suture [seal|verify|measure|<id>]  preserve exact declared context byte
                             slices; verify payload and donor drift, never execute
+  station hermes ask <file>|- "<question>" [--grep REGEX]  bounded local
+                            Hermes map-reduce reading; advisory, source bytes stay primary
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
@@ -1879,6 +1881,45 @@ def cmd_llm(model: str, prompt: str):
     print(out if out is not None else "[llm] DOWN or errored (not an answer)")
 
 
+# ------------------------------------------------------------ hermes ------
+def cmd_hermes(args_: list[str]):
+    """The Atlas/Hermes seam. Hermes receives bytes through this CLI, never
+    through a hidden API or credential. Its map-reduce answer is advisory; the
+    raw source remains the load-bearing record."""
+    if len(args_) < 3 or args_[0] != "ask":
+        print('usage: station hermes ask <file>|- "<question>" [--grep REGEX]')
+        sys.exit(1)
+    source, question = args_[1], args_[2]
+    grep = None
+    if "--grep" in args_:
+        pos = args_.index("--grep")
+        if pos + 1 >= len(args_):
+            print('usage: station hermes ask <file>|- "<question>" [--grep REGEX]')
+            sys.exit(1)
+        grep = args_[pos + 1]
+    try:
+        import hermes as reader
+        corpus = (sys.stdin.read() if source == "-" else
+                  reader._read_any(Path(source)))
+        result = reader.ask(corpus, question, grep=grep)
+    except (OSError, ValueError, re.error) as exc:
+        print(f"[hermes] refused: {exc}")
+        sys.exit(1)
+    _spine_append("hermes-read", {"source": source, "grep": grep,
+                                   "question": question[:160],
+                                   "model": getattr(reader, "MODEL", "unknown"),
+                                   "calls": result.get("calls", 0),
+                                   "bytes": result.get("bytes_read", 0),
+                                   "error": result.get("error")})
+    if "error" in result:
+        print(f"[hermes] {result['error']}")
+        sys.exit(2)
+    print(result.get("answer", ""))
+    print(f"\n[hermes] model={getattr(reader, 'MODEL', 'unknown')} calls={result.get('calls', 0)} depth={result.get('depth', 0)} "
+          f"chunks={result.get('chunks', 0)} bytes={result.get('bytes_read', 0):,} cost=$0")
+    print("[hermes] SCOPE: advisory reading; verify load-bearing facts against source")
+
+
 # ----------------------------------------------------------------- wsl ------
 def cmd_wsl(user: str, src: str):
     """Run a script in WSL with ZERO inline quoting (spiral turn 2).
@@ -2941,6 +2982,8 @@ def main():
             cmd_llm("qwen2.5-coder:7b", args[1])
         else:
             cmd_llm(args[1], " ".join(args[2:]))
+    elif cmd == "hermes":
+        cmd_hermes(args[1:])
     elif cmd == "cure":
         cmd_cure(" ".join(args[1:]))
     elif cmd == "errata":
