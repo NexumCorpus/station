@@ -136,6 +136,7 @@ MARKET_PACKS = HERE / "market"
 IMMUNITY = HERE / "immunity.jsonl"
 IMMUNE_PACKS = HERE / "immune"
 FORECASTS = HERE / "forecasts.jsonl"
+FORECAST_PACKS = HERE / "forecasts"
 SUITE_TIMEOUT_S = 900
 
 
@@ -1438,10 +1439,24 @@ def cmd_forecast(args_: list):
             due = " DUE" if state == "ARMED" and row["forecast"]["due"] <= _now()[:10] else ""
             print(f"{state:<11} {ident:<30} p={row['forecast']['p']:.2f} due={row['forecast']['due']}{due}")
         return
+    if args_[0] == "report":
+        if len(args_) != 2 or args_[1] not in rows:
+            print(f"usage: station forecast report <id>; known: {', '.join(rows)}")
+            sys.exit(1)
+        ident, row = args_[1], rows[args_[1]]
+        FORECAST_PACKS.mkdir(parents=True, exist_ok=True)
+        out = FORECAST_PACKS / f"{ident}.md"
+        tmp = out.with_suffix(".tmp")
+        tmp.write_text(forecast.report_text(row), encoding="utf-8")
+        os.replace(tmp, out)
+        _spine_append("forecast-report", {"id": ident, "path": str(out),
+                                             "status": forecast.status(row)})
+        print(f"[forecast] report -> {out}")
+        return
     if args_[0] in rows:
         _forecast_show(args_[0], rows[args_[0]])
         return
-    print("usage: station forecast [arm|resolve|review|audit <id>|<id>]  (report lands with receipts)")
+    print("usage: station forecast [arm|resolve|review|audit|report <id>|<id>]")
     sys.exit(1)
 
 

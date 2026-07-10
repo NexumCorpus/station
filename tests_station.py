@@ -394,17 +394,18 @@ class ForecastTests(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.source = self.tmp / "signals.jsonl"
         self.source.write_text(json.dumps({"kind": "signal"}) + "\n", encoding="utf-8")
-        self._forecasts, self._spine, self._now = (station.FORECASTS,
-                                                    station.SPINE,
-                                                    station._now)
+        self._forecasts, self._packs, self._spine, self._now = (station.FORECASTS,
+                                                                 station.FORECAST_PACKS,
+                                                                 station.SPINE,
+                                                                 station._now)
         station.FORECASTS = self.tmp / "forecasts.jsonl"
+        station.FORECAST_PACKS = self.tmp / "packs"
         station.SPINE = self.tmp / "spine.jsonl"
         station._now = lambda: "2030-01-01T00:00:00Z"
 
     def tearDown(self):
-        station.FORECASTS, station.SPINE, station._now = (self._forecasts,
-                                                            self._spine,
-                                                            self._now)
+        station.FORECASTS, station.FORECAST_PACKS, station.SPINE, station._now = (
+            self._forecasts, self._packs, self._spine, self._now)
 
     def _forecast(self):
         return {
@@ -437,6 +438,10 @@ class ForecastTests(unittest.TestCase):
         station.cmd_forecast(["review", "future-signal", "YES", "kept route"])
         self.assertEqual(station.forecast.status(station._fold_forecasts()["future-signal"]),
                          "REVIEWED")
+        station.cmd_forecast(["report", "future-signal"])
+        report = (station.FORECAST_PACKS / "future-signal.md").read_text(encoding="utf-8")
+        self.assertIn("Brier loss", report)
+        self.assertIn("does not establish calibration", report)
 
     def test_route_language_refuses_a_shell_escape(self):
         bad = self._forecast() | {"route": {"kind": "shell", "cmd": "echo yes"}}
