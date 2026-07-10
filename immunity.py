@@ -114,7 +114,11 @@ def run_trial(trial: dict, suites: dict[str, dict]) -> dict:
             return {**base, "status": "BASELINE-BROKEN",
                     "mutant": {"exit": None, "tail": "not run"}}
         wound = specimen / target
-        wound.write_text(mutated, encoding="utf-8")
+        # Preserve the specimen's original newline grammar byte-for-byte.
+        # On Windows, text-mode writing turns an existing CRLF into CRCRLF;
+        # that can make an unrelated backslash-continuation unparsable and
+        # counterfeit a mutation result.
+        wound.write_bytes(mutated.encode("utf-8"))
         base["mutant_sha"] = sha16(wound.read_bytes())
         # A malformed program can make any suite exit nonzero without its
         # assertions ever observing the intended wound. Syntax failure is a

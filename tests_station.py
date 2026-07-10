@@ -314,7 +314,12 @@ class ImmunityTests(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.root = self.tmp / "specimen"
         self.root.mkdir()
-        (self.root / "subject.py").write_text("VALUE = 7\n", encoding="utf-8")
+        # Deliberate CRLF + continuation: a text-mode rewrite used to turn
+        # this into CRCRLF and manufacture a syntax failure before the check.
+        (self.root / "subject.py").write_bytes(
+            b"VALUE = (\\\r\n"
+            b"    7\r\n"
+            b")\r\n")
         (self.root / "check.py").write_text(
             "import subject\nassert subject.VALUE == 7\n", encoding="utf-8")
         self._immune, self._packs, self._spine, self._registry = (station.IMMUNITY,
@@ -335,7 +340,7 @@ class ImmunityTests(unittest.TestCase):
 
     def _trial(self):
         return {"id": "value-guard", "suite": "specimen", "target": "subject.py",
-                "find": "VALUE = 7", "replace": "VALUE = 0",
+                "find": "    7", "replace": "    0",
                 "reason": "The checker must distinguish the guarded value.",
                 "kill": "The mutant exits zero or the live source changes."}
 
@@ -355,8 +360,8 @@ class ImmunityTests(unittest.TestCase):
         station.cmd_immune(["report", "value-guard"])
         row = station._fold_immunity()["value-guard"]
         self.assertEqual(row["outcome"]["status"], "KILLED")
-        self.assertEqual((self.root / "subject.py").read_text(encoding="utf-8"),
-                         "VALUE = 7\n")
+        self.assertEqual((self.root / "subject.py").read_bytes(),
+                         b"VALUE = (\\\r\n    7\r\n)\r\n")
         report = (station.IMMUNE_PACKS / "value-guard.md").read_text(encoding="utf-8")
         self.assertIn("Counterfactual immunity", report)
         self.assertIn("does not prove complete coverage", report)
@@ -366,7 +371,7 @@ class ImmunityTests(unittest.TestCase):
         self.assertEqual(events[-1]["kind"], "immune-report")
 
     def test_syntax_broken_mutant_is_not_counted_as_killed_guard(self):
-        trial = self._trial() | {"id": "syntax-invalid", "replace": "VALUE = ("}
+        trial = self._trial() | {"id": "syntax-invalid", "replace": "    ("}
         self._arm(trial)
         with self.assertRaises(SystemExit) as cm:
             station.cmd_immune(["run", "syntax-invalid"])
