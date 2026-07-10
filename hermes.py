@@ -33,6 +33,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 import shutil
@@ -165,8 +166,12 @@ def _chunks(text: str, size: int = CHUNK_BYTES):
 def ask(corpus: str, question: str, grep: str | None = None) -> dict:
     """Fixed map-reduce read. Returns {answer|error, calls, depth, chunks,
     bytes_read} — counts are part of the answer, not decoration."""
+    source_sha16 = hashlib.sha256(corpus.encode("utf-8")).hexdigest()[:16]
     if not _backend_up():
-        return {"error": f"DOWN: Hermes backend unavailable ({BACKEND})", "calls": 0}
+        return {"error": f"DOWN: Hermes backend unavailable ({BACKEND})", "calls": 0,
+                "depth": 0, "chunks": 0, "bytes_read": len(corpus),
+                "source_sha16": source_sha16, "complete": False,
+                "unread_chunks": 0}
     raw_bytes = len(corpus)
     if grep:
         kept = [ln for ln in corpus.splitlines()
@@ -175,47 +180,69 @@ def ask(corpus: str, question: str, grep: str | None = None) -> dict:
         if not corpus:
             return {"answer": f"grep '{grep}' matched nothing",
                     "calls": 0, "depth": 0, "chunks": 0,
-                    "bytes_read": raw_bytes}
+                    "bytes_read": raw_bytes, "source_sha16": source_sha16,
+                    "complete": True, "unread_chunks": 0}
     calls = 0
     depth = 0
     notes = corpus
     total_chunks = 0
+    unread_chunks = 0
+    complete = True
     if len(corpus) <= CHUNK_BYTES:
         # fits whole: answer directly off the raw bytes — a map stage here
         # would only launder context through a lossy extract for no reason
         r = _reader_call(f"QUESTION: {question}\n\nDOCUMENT:\n{corpus}", REDUCE_SYS)
         if r is None:
-            return {"error": "DOWN at direct read", "calls": 1}
+            return {"error": "DOWN at direct read", "calls": 1, "depth": 0,
+                    "chunks": 1, "bytes_read": raw_bytes,
+                    "source_sha16": source_sha16, "complete": False,
+                    "unread_chunks": 1}
         return {"answer": r.strip(), "calls": 1, "depth": 0, "chunks": 1,
-                "bytes_read": raw_bytes}
+                "bytes_read": raw_bytes, "source_sha16": source_sha16,
+                "complete": True, "unread_chunks": 0}
     while depth < MAX_DEPTH:
         pieces = _chunks(notes)
         total_chunks += len(pieces)
         if len(pieces) == 1 and depth > 0:
             break                          # notes fit; go synthesize
         partials = []
+        processed = 0
         for p in pieces:
             if calls >= MAX_CALLS:
                 partials.append("[BUDGET EXHAUSTED — remainder unread]")
+                unread_chunks += len(pieces) - processed
+                complete = False
                 break
             r = _reader_call(f"QUESTION: {question}\n\nPIECE:\n{p}", MAP_SYS)
             calls += 1
             if r is None:
                 return {"error": f"DOWN mid-read after {calls} calls",
-                        "calls": calls}
+                        "calls": calls, "depth": depth, "chunks": total_chunks,
+                        "bytes_read": raw_bytes, "source_sha16": source_sha16,
+                        "complete": False, "unread_chunks": len(pieces) - processed}
             if r.strip() and r.strip() != "NOTHING":
                 partials.append(r.strip())
+            processed += 1
         notes = "\n".join(partials) if partials else "NOTHING RELEVANT FOUND"
         depth += 1
         if len(notes) <= CHUNK_BYTES:
             break
+    if calls >= MAX_CALLS:
+        return {"answer": notes[:CHUNK_BYTES], "calls": calls, "depth": depth,
+                "chunks": total_chunks, "bytes_read": raw_bytes,
+                "source_sha16": source_sha16, "complete": False,
+                "unread_chunks": max(unread_chunks, 1)}
     r = _reader_call(f"QUESTION: {question}\n\nNOTES:\n{notes[:CHUNK_BYTES]}", REDUCE_SYS)
     calls += 1
     if r is None:
         return {"error": f"DOWN at synthesis after {calls} calls",
-                "calls": calls}
+                "calls": calls, "depth": depth, "chunks": total_chunks,
+                "bytes_read": raw_bytes, "source_sha16": source_sha16,
+                "complete": False, "unread_chunks": unread_chunks}
     return {"answer": r.strip(), "calls": calls, "depth": depth,
-            "chunks": total_chunks, "bytes_read": raw_bytes}
+            "chunks": total_chunks, "bytes_read": raw_bytes,
+            "source_sha16": source_sha16, "complete": complete,
+            "unread_chunks": unread_chunks}
 
 
 DIGEST_MODEL = "hermes3:8b"       # schema-tuned (research/hermes-local.md);

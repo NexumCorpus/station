@@ -1911,6 +1911,13 @@ def cmd_hermes(args_: list[str]):
                                    "model": getattr(reader, "MODEL", "unknown"),
                                    "calls": result.get("calls", 0),
                                    "bytes": result.get("bytes_read", 0),
+                                   "raw_bytes": result.get("bytes_read", 0),
+                                   "selected_bytes": result.get("selected_bytes", result.get("bytes_read", 0)),
+                                   "depth": result.get("depth", 0),
+                                   "chunks": result.get("chunks", 0),
+                                   "source_sha16": result.get("source_sha16"),
+                                   "complete": result.get("complete", "error" not in result),
+                                   "unread_chunks": result.get("unread_chunks", 0),
                                    "error": result.get("error")})
     if "error" in result:
         print(f"[hermes] {result['error']}")
