@@ -457,6 +457,32 @@ class ForecastTests(unittest.TestCase):
         self.assertIn("at_most=0", observed["detail"])
 
 
+class HorizonTests(unittest.TestCase):
+    """Ranking accepted clocks must not erase who is allowed to act on them."""
+
+    def test_integrity_then_clock_then_external_authority(self):
+        preregs = {"audit": {"status": "armed", "due": "2030-01-01",
+                               "score_hint": "named scorer"}}
+        market = {"offer": {"status": "armed", "due": "2030-01-01",
+                              "test": "a qualified external signal"}}
+        forecasts = {"future": {"forecast": {"due": "2030-01-01",
+                                                 "question": "Will a frozen route observe the future?"},
+                                "resolution": None, "review": None}}
+        items = station.horizon.collect("2030-01-02", preregs, market, forecasts,
+                                        [{"id": "guard", "problems": ["stale hash"]}])
+        self.assertEqual([item["kind"] for item in items[:4]],
+                         ["INTEGRITY-ROT", "FORECAST-DUE", "PREREG-DUE", "MARKET-DUE"])
+        self.assertEqual(items[0]["executor"], "deterministic registered suite")
+        self.assertIn("external", items[3]["authority"])
+        self.assertEqual(station.horizon.validate(items), [])
+
+    def test_authority_gap_is_horizon_rot(self):
+        broken = [{"id": "x", "source": "market", "kind": "MARKET-DUE", "rank": 40,
+                   "due": "2030-01-01", "status": "DUE", "executor": "human + external evidence",
+                   "authority": "human only", "evidence": "x", "next": "x"}]
+        self.assertIn("market authority drift", station.horizon.validate(broken)[0])
+
+
 class OrganTests(unittest.TestCase):
     """station organs (spiral turn 51): the ledger read as a registry."""
 
