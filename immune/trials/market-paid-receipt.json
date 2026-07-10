@@ -1,0 +1,9 @@
+{
+  "id": "market-paid-receipt",
+  "suite": "station",
+  "target": "station.py",
+  "find": "if not receipts or any(not receipt.is_file() for receipt in receipts):",
+  "replace": "if False:",
+  "reason": "PAID must be an externally grounded event, not a string the model can type into a ledger.",
+  "kill": "If the station suite exits zero after receipt existence is bypassed, payment integrity is decorative and the market organ must be narrowed."
+}

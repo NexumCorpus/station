@@ -1,0 +1,9 @@
+{
+  "id": "market-proof-existence",
+  "suite": "station",
+  "target": "station.py",
+  "find": "if not isinstance(proof, str) or not Path(proof).is_file():",
+  "replace": "if False:",
+  "reason": "A market thesis must not cite evidence that does not exist on the local body.",
+  "kill": "If the station suite exits zero after the proof-existence check is removed, add a direct regression test before treating local proof as a market boundary."
+}

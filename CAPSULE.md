@@ -57,6 +57,10 @@ COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
                            stdin with local proofs + buyer/problem/test/kill;
                            pack/verify re-derive a buyer-readable proof packet;
                            PAID needs receipt:<local-file>, never self-report
+  immune [arm|run|verify|report|<id>]  counterfactual immunity: arm a single-site
+                           lesion against a registered suite; run it only in a
+                           disposable copy; KILLED requires green baseline +
+                           valid mutant failure, and source edits make it stale
   cure "<fragment>"        grimoire lookup FIRST on any error
   pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
 
@@ -75,7 +79,8 @@ COMMANDS (free layer + hand):
   wsl [user] <src>|-       run script in WSL, bytes-not-quotes joint
 
 FILES: spine.jsonl (events), burn-ledger.jsonl (SS15 counter), spiral.jsonl,
-  market.jsonl (external-demand hypotheses/signals; not revenue without receipt)
+  market.jsonl (external-demand hypotheses/signals; not revenue without receipt),
+  immunity.jsonl (counterfactual lesion/outcome receipts; KILLED is local only)
   (turn ledger), errata.jsonl, grimoire.jsonl, drift.jsonl, cursors/,
   THINKING/ (open reasoning ledgers), plays/, templates/, checks/.
 DESIGN: stigmergy, cursors (never pay twice), one spine, dense wire.

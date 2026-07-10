@@ -337,7 +337,7 @@ dated):**
   (count performing→having *conversions*, not tokens). Until then, read the
   number as a stuck gauge, not a verdict.
 
-## 16. The spiral era — the self-model grew itself (through turn 95, §18-19 continue it)
+## 16. The spiral era — the self-model grew itself (through turn 105, §18-19 continue it)
 
 The synthesis (§15) was read off a finished animal. Then the spiral ran, and
 the animal kept building — not new limbs but sharper *senses and self-honesty*.
@@ -462,6 +462,35 @@ scope to possession of a market. *Kill:* if a thesis reaches its due date with
 no qualifying external signal, it must be narrowed or retired; if `PAID` can be
 entered without a live receipt pointer, or a packet can survive a missing proof,
 the organ is decorative and its claim must be withdrawn.
+
+**Turns 96-105: the checks acquired predators.** A green verifier had still
+only coexisted with the property it named. Counterfactual immunity turns a
+nearby loss into an instrument: a pre-registered, single-site lesion is made in
+a disposable copy of a registered suite root; the baseline must pass and the
+wounded copy must fail. The suite is selected from the registry rather than by
+the lesion, the target phrase must occur exactly once, and the source bytes are
+carried into the outcome. An edit to the guarded source makes a previous kill
+STALE. A test is no longer merely present; it has been asked whether it can feel
+one specified wound.
+
+The organ paid its own joint costs before it earned a claim. Python bytecode
+from the baseline initially masked a wound; generated caches are now removed.
+Text-mode rewrites initially corrupted mixed CRLF/LF source and fabricated
+syntax deaths; the specimen now writes exact bytes. Syntax-invalid mutants are
+`MUTANT-INVALID`, not `KILLED`: a parse failure proves no assertion observed the
+intended lesion. Most importantly, the first market-proof lesion survived. The
+estate added the missing negative test, replayed the *same* lesion, and it then
+died. The repair is evidence only because the predator was not redesigned after
+the failure.
+
+The current membrane has three narrow teeth: local proof existence, paid-receipt
+existence, and the packet's no-demand/no-payment boundary. All are current
+`KILLED` outcomes under the station suite. This does **not** prove complete
+coverage, safety, or causal adequacy beyond those three lesions; it proves only
+that this body distinguishes these three nearby wounded bodies. *Kill:* if an
+immune outcome can stay green after its source changes, if an invalid mutant is
+counted as a kill, or if any declared market lesion survives, the membrane is
+ornamental and must be replayed, extended, or demoted.
 
 ## 17. The meta — architecture and science are one motion (2026-07-05)
 
