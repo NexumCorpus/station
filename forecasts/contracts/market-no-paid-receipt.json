@@ -1,0 +1,14 @@
+{
+  "id": "market-no-paid-receipt",
+  "question": "By 2026-08-10, will the market ledger still contain no PAID signal event?",
+  "p": 0.95,
+  "due": "2026-08-10",
+  "route": {
+    "kind": "jsonl_count_at_most",
+    "path": "E:/station/market.jsonl",
+    "where": {"kind": "signal", "verdict": "PAID"},
+    "at_most": 0
+  },
+  "if_yes": "Keep revenue at zero and evaluate the offers as unvalidated hypotheses, not an income stream.",
+  "if_no": "Inspect the receipt-bearing event and decide whether it warrants a bounded follow-on rather than extrapolating from one payment."
+}

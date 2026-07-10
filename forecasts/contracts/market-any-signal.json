@@ -1,0 +1,14 @@
+{
+  "id": "market-any-signal",
+  "question": "By 2026-08-10, will the market ledger contain at least one scored signal event?",
+  "p": 0.3,
+  "due": "2026-08-10",
+  "route": {
+    "kind": "jsonl_count_at_least",
+    "path": "E:/station/market.jsonl",
+    "where": {"kind": "signal"},
+    "at_least": 1
+  },
+  "if_yes": "Read the signal evidence and narrow the highest-information offer; do not promote one score into demand.",
+  "if_no": "Retire or narrow the armed market theses instead of asserting latent demand."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "evidence-gate-interest",
+  "question": "By 2026-08-10, will the evidence-gate offer receive a scored INTEREST event in the market ledger?",
+  "p": 0.2,
+  "due": "2026-08-10",
+  "route": {
+    "kind": "jsonl_count_at_least",
+    "path": "E:/station/market.jsonl",
+    "where": {"kind": "signal", "id": "evidence-gate-implementation", "verdict": "INTEREST"},
+    "at_least": 1
+  },
+  "if_yes": "Ask whether the signal identifies a concrete release-control failure before proposing implementation scope.",
+  "if_no": "Do not broaden the evidence-gate offer; revise its bounded problem or retire it with the market thesis."
+}
