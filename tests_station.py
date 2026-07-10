@@ -339,10 +339,10 @@ class ImmunityTests(unittest.TestCase):
                 "reason": "The checker must distinguish the guarded value.",
                 "kill": "The mutant exits zero or the live source changes."}
 
-    def _arm(self):
+    def _arm(self, trial=None):
         import io
         old_stdin = sys.stdin
-        sys.stdin = io.StringIO(json.dumps(self._trial()))
+        sys.stdin = io.StringIO(json.dumps(trial or self._trial()))
         try:
             station.cmd_immune(["arm"])
         finally:
@@ -364,6 +364,15 @@ class ImmunityTests(unittest.TestCase):
                   station.SPINE.read_text(encoding="utf-8").splitlines()]
         self.assertIn("immune-run", [event["kind"] for event in events])
         self.assertEqual(events[-1]["kind"], "immune-report")
+
+    def test_syntax_broken_mutant_is_not_counted_as_killed_guard(self):
+        trial = self._trial() | {"id": "syntax-invalid", "replace": "VALUE = ("}
+        self._arm(trial)
+        with self.assertRaises(SystemExit) as cm:
+            station.cmd_immune(["run", "syntax-invalid"])
+        self.assertEqual(cm.exception.code, 1)
+        row = station._fold_immunity()["syntax-invalid"]
+        self.assertEqual(row["outcome"]["status"], "MUTANT-INVALID")
 
 
 class OrganTests(unittest.TestCase):
