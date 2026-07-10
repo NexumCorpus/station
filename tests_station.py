@@ -387,6 +387,64 @@ class ImmunityTests(unittest.TestCase):
         self.assertEqual(row["outcome"]["status"], "MUTANT-INVALID")
 
 
+class ForecastTests(unittest.TestCase):
+    """The future cannot be backfilled or resolved by the forecaster's prose."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.source = self.tmp / "signals.jsonl"
+        self.source.write_text(json.dumps({"kind": "signal"}) + "\n", encoding="utf-8")
+        self._forecasts, self._spine, self._now = (station.FORECASTS,
+                                                    station.SPINE,
+                                                    station._now)
+        station.FORECASTS = self.tmp / "forecasts.jsonl"
+        station.SPINE = self.tmp / "spine.jsonl"
+        station._now = lambda: "2030-01-01T00:00:00Z"
+
+    def tearDown(self):
+        station.FORECASTS, station.SPINE, station._now = (self._forecasts,
+                                                            self._spine,
+                                                            self._now)
+
+    def _forecast(self):
+        return {
+            "id": "future-signal", "question": "Will the sealed signal ledger contain a signal entry?",
+            "p": 0.8, "due": "2030-01-02",
+            "route": {"kind": "jsonl_count_at_least", "path": str(self.source),
+                      "where": {"kind": "signal"}, "at_least": 1},
+            "if_yes": "keep the signal route as a candidate instrument",
+            "if_no": "retire the route and inspect why the signal disappeared",
+        }
+
+    def _arm(self, item=None):
+        import io
+        old_stdin = sys.stdin
+        sys.stdin = io.StringIO(json.dumps(item or self._forecast()))
+        try:
+            station.cmd_forecast(["arm"])
+        finally:
+            sys.stdin = old_stdin
+
+    def test_due_gate_route_resolution_brier_and_review(self):
+        self._arm()
+        with self.assertRaises(SystemExit):
+            station.cmd_forecast(["resolve", "future-signal"])
+        station._now = lambda: "2030-01-02T00:00:00Z"
+        station.cmd_forecast(["resolve", "future-signal"])
+        row = station._fold_forecasts()["future-signal"]
+        self.assertTrue(row["resolution"]["yes"])
+        self.assertAlmostEqual(row["resolution"]["brier"], 0.04)
+        station.cmd_forecast(["review", "future-signal", "YES", "kept route"])
+        self.assertEqual(station.forecast.status(station._fold_forecasts()["future-signal"]),
+                         "REVIEWED")
+
+    def test_route_language_refuses_a_shell_escape(self):
+        bad = self._forecast() | {"route": {"kind": "shell", "cmd": "echo yes"}}
+        with self.assertRaises(SystemExit):
+            self._arm(bad)
+        self.assertFalse(station.FORECASTS.exists())
+
+
 class OrganTests(unittest.TestCase):
     """station organs (spiral turn 51): the ledger read as a registry."""
 
