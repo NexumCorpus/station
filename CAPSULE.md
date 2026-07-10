@@ -61,6 +61,10 @@ COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
                            lesion against a registered suite; run it only in a
                            disposable copy; KILLED requires green baseline +
                            valid mutant failure, and source edits make it stale
+  forecast [arm|resolve|review|audit|report|<id>]  temporal witness: seal a
+                           future p + strictly-future due date + frozen local
+                           route + divergent YES/NO actions; time resolves, a
+                           resolution needs review, and no result = calibration
   cure "<fragment>"        grimoire lookup FIRST on any error
   pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
 
@@ -80,7 +84,8 @@ COMMANDS (free layer + hand):
 
 FILES: spine.jsonl (events), burn-ledger.jsonl (SS15 counter), spiral.jsonl,
   market.jsonl (external-demand hypotheses/signals; not revenue without receipt),
-  immunity.jsonl (counterfactual lesion/outcome receipts; KILLED is local only)
+  immunity.jsonl (counterfactual lesion/outcome receipts; KILLED is local only),
+  forecasts.jsonl (future commitments/resolutions/reviews; score is not calibration)
   (turn ledger), errata.jsonl, grimoire.jsonl, drift.jsonl, cursors/,
   THINKING/ (open reasoning ledgers), plays/, templates/, checks/.
 DESIGN: stigmergy, cursors (never pay twice), one spine, dense wire.

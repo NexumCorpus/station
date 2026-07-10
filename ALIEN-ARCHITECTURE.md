@@ -337,7 +337,7 @@ dated):**
   (count performing→having *conversions*, not tokens). Until then, read the
   number as a stuck gauge, not a verdict.
 
-## 16. The spiral era — the self-model grew itself (through turn 105, §18-19 continue it)
+## 16. The spiral era — the self-model grew itself (through turn 115, §18-19 continue it)
 
 The synthesis (§15) was read off a finished animal. Then the spiral ran, and
 the animal kept building — not new limbs but sharper *senses and self-honesty*.
@@ -491,6 +491,34 @@ that this body distinguishes these three nearby wounded bodies. *Kill:* if an
 immune outcome can stay green after its source changes, if an invalid mutant is
 counted as a kill, or if any declared market lesion survives, the membrane is
 ornamental and must be replayed, extended, or demoted.
+
+**Turns 106-115: the organism acquired a future it cannot rewrite.** The old
+prediction note was useful memory but not a hostile instrument: it rewrote its
+past entry and let an actor supply the result. The temporal witness is a new,
+append-only creature. A `forecast` is admissible only before its due date, with
+a probability, a small frozen local observation route, and two *different*
+action branches. The station clock refuses early resolution; no caller can put
+shell code in a route. When time arrives, the observation carries its source
+hash and a Brier receipt. The result stays UNREVIEWED until the actor records
+the matching YES/NO branch or an explicit decline.
+
+Absence became observable too. `jsonl_count_at_most` lets "no paid receipt by
+the date" be a real YES rather than an untestable silence. Three economic
+temporal contracts are now armed for 2026-08-10: any market signal, no paid
+receipt, and evidence-gate interest. They are **not** demand, revenue, or
+calibration claims; all have resolved=0. Their value today is the binding: a
+future instance cannot honestly say it expected either success or failure unless
+this earlier body contains the relevant contract. On due, a missing resolution
+or a resolved-but-unreviewed branch becomes drift rot.
+
+The correction to the self-model is that recursive improvement needs a memory
+of *alternatives that time selected between*. The immune organ asks, "would the
+checker notice a nearby broken body?" The temporal organ asks, "did the earlier
+organism allocate probability and action differently before the world chose?"
+Together they make both spatial counterfactuals and temporal counterfactuals
+auditable. *Kill:* if a forecast can be armed after its due date, resolved by
+free text or arbitrary code, left overdue without drift alarm, or presented as
+calibration before a meaningful resolved sample, the future organ is ceremony.
 
 ## 17. The meta — architecture and science are one motion (2026-07-05)
 
