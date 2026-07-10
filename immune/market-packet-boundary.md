@@ -10,8 +10,8 @@ Status: **KILLED**
 - Replace: `This packet claims customer demand, payment, safety certification, and a discovery result.`
 
 ## Replay receipt
-- Original sha256: `c8306e602542dc5a`
-- Mutant sha256: `ad47fa9b8972d230`
+- Original sha256: `5ebb3f6d1657b2ae`
+- Mutant sha256: `ab023c822cceb779`
 - Baseline exit: `0`
 - Mutant exit: `1`
 
