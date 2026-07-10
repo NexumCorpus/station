@@ -50,7 +50,7 @@ from station import llm, llm_up                            # noqa: E402
 BACKEND = os.environ.get("HERMES_BACKEND", "codex-cli").strip().lower()
 # Hermes reads default to a family agent through the authenticated Codex CLI.
 # Ollama remains an explicit fallback (`HERMES_BACKEND=ollama`), never silent.
-MODEL = os.environ.get("HERMES_MODEL", "gpt-5.5")
+MODEL = os.environ.get("HERMES_MODEL", "gpt-5.6-luna")
 CHUNK_BYTES = 28_000          # ~7K tokens: worker keeps headroom in 16K ctx
 NUM_CTX = 16_384              # ollama default 4-8K silently truncates (rlm.md)
 MAX_CALLS = 64
