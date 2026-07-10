@@ -63,6 +63,7 @@
   "E:/station/preregs.jsonl",
   "E:/station/market.jsonl",
   "E:/station/immunity.jsonl",
+  "E:/station/forecasts.jsonl",
   "E:/station/shards.jsonl"
  ],
  "logs": {
@@ -74,6 +75,7 @@
   "wave2": "E:/mission-runs/wave2.log",
   "market": "E:/station/market.jsonl",
   "immune": "E:/station/immunity.jsonl",
+  "forecast": "E:/station/forecasts.jsonl",
   "digest": "E:/station/digests/*.md"
  }
 }

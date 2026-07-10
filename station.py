@@ -710,6 +710,7 @@ def cmd_backup():
         (HERE / "preregs.jsonl", dest / "station" / "preregs.jsonl"),
         (HERE / "market.jsonl", dest / "station" / "market.jsonl"),
         (HERE / "immunity.jsonl", dest / "station" / "immunity.jsonl"),
+        (HERE / "forecasts.jsonl", dest / "station" / "forecasts.jsonl"),
         (HERE / "shards.jsonl", dest / "station" / "shards.jsonl"),
         (CURSORS / "witness.json", dest / "station" / "witness.json"),
         (Path("E:/atlas-station/CLAIMS.json"), dest / "atlas" / "CLAIMS.json"),
