@@ -265,10 +265,10 @@ class MarketTests(unittest.TestCase):
             "due": "2099-01-01",
         }
 
-    def _arm(self):
+    def _arm(self, thesis=None):
         import io
         old_stdin = sys.stdin
-        sys.stdin = io.StringIO(json.dumps(self._thesis()))
+        sys.stdin = io.StringIO(json.dumps(thesis or self._thesis()))
         try:
             station.cmd_market(["arm"])
         finally:
@@ -280,6 +280,13 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(row["status"], "armed")
         self.assertEqual(row["proofs"], [str(self.proof)])
         self.assertEqual(self._spine_events()[-1]["kind"], "market-arm")
+
+    def test_market_arm_refuses_a_missing_local_proof(self):
+        thesis = self._thesis() | {"proofs": [str(self.tmp / "missing-proof.txt")]}
+        with self.assertRaises(SystemExit) as cm:
+            self._arm(thesis)
+        self.assertEqual(cm.exception.code, 1)
+        self.assertFalse(station.MARKET.exists())
 
     def _spine_events(self):
         return [json.loads(line) for line in
