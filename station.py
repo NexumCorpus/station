@@ -131,6 +131,7 @@ SPIRAL = HERE / "spiral.jsonl"
 MARKET = HERE / "market.jsonl"
 MARKET_PACKS = HERE / "market"
 IMMUNITY = HERE / "immunity.jsonl"
+IMMUNE_PACKS = HERE / "immune"
 SUITE_TIMEOUT_S = 900
 
 
@@ -1264,10 +1265,33 @@ def cmd_immune(args_: list):
         if entry["status"] != "KILLED":
             sys.exit(1)   # a surviving wound is useful bad news, never PASS
         return
+    if args_[0] in ("verify", "report"):
+        if len(args_) != 2 or args_[1] not in rows:
+            print(f"usage: station immune {args_[0]} <id>; known: {', '.join(rows)}")
+            sys.exit(1)
+        ident, row = args_[1], rows[args_[1]]
+        problems = immunity.verify(row["trial"], row.get("outcome"),
+                                    immunity.suite_index(_registry()))
+        if problems:
+            print("IMMUNE-ROT " + " | ".join(problems))
+            sys.exit(1)
+        if args_[0] == "verify":
+            print(f"IMMUNE-READY {ident} status=KILLED source={row['outcome']['source_sha']}")
+            return
+        IMMUNE_PACKS.mkdir(parents=True, exist_ok=True)
+        out = IMMUNE_PACKS / f"{ident}.md"
+        tmp = out.with_suffix(".tmp")
+        tmp.write_text(immunity.report_text(row["trial"], row["outcome"]),
+                       encoding="utf-8")
+        os.replace(tmp, out)
+        _spine_append("immune-report", {"id": ident, "path": str(out),
+                                         "source": row["outcome"]["source_sha"]})
+        print(f"[immune] report -> {out}")
+        return
     if args_[0] in rows:
         _immune_show(args_[0], rows[args_[0]])
         return
-    print("usage: station immune [arm|run <id>|<id>]  (verify/report land after receipt checks are installed)")
+    print("usage: station immune [arm|run|verify|report <id>|<id>]")
     sys.exit(1)
 
 

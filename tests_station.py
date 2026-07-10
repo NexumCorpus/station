@@ -317,10 +317,12 @@ class ImmunityTests(unittest.TestCase):
         (self.root / "subject.py").write_text("VALUE = 7\n", encoding="utf-8")
         (self.root / "check.py").write_text(
             "import subject\nassert subject.VALUE == 7\n", encoding="utf-8")
-        self._immune, self._spine, self._registry = (station.IMMUNITY,
-                                                       station.SPINE,
-                                                       station._registry)
+        self._immune, self._packs, self._spine, self._registry = (station.IMMUNITY,
+                                                                    station.IMMUNE_PACKS,
+                                                                    station.SPINE,
+                                                                    station._registry)
         station.IMMUNITY = self.tmp / "immunity.jsonl"
+        station.IMMUNE_PACKS = self.tmp / "packs"
         station.SPINE = self.tmp / "spine.jsonl"
         station._registry = lambda: {"suites": [{
             "name": "specimen", "cwd": str(self.root),
@@ -328,9 +330,8 @@ class ImmunityTests(unittest.TestCase):
         }]}
 
     def tearDown(self):
-        station.IMMUNITY, station.SPINE, station._registry = (self._immune,
-                                                                self._spine,
-                                                                self._registry)
+        station.IMMUNITY, station.IMMUNE_PACKS, station.SPINE, station._registry = (
+            self._immune, self._packs, self._spine, self._registry)
 
     def _trial(self):
         return {"id": "value-guard", "suite": "specimen", "target": "subject.py",
@@ -350,13 +351,19 @@ class ImmunityTests(unittest.TestCase):
     def test_disposable_lesion_is_killed_without_touching_live_source(self):
         self._arm()
         station.cmd_immune(["run", "value-guard"])
+        station.cmd_immune(["verify", "value-guard"])
+        station.cmd_immune(["report", "value-guard"])
         row = station._fold_immunity()["value-guard"]
         self.assertEqual(row["outcome"]["status"], "KILLED")
         self.assertEqual((self.root / "subject.py").read_text(encoding="utf-8"),
                          "VALUE = 7\n")
+        report = (station.IMMUNE_PACKS / "value-guard.md").read_text(encoding="utf-8")
+        self.assertIn("Counterfactual immunity", report)
+        self.assertIn("does not prove complete coverage", report)
         events = [json.loads(line) for line in
                   station.SPINE.read_text(encoding="utf-8").splitlines()]
-        self.assertEqual(events[-1]["kind"], "immune-run")
+        self.assertIn("immune-run", [event["kind"] for event in events])
+        self.assertEqual(events[-1]["kind"], "immune-report")
 
 
 class OrganTests(unittest.TestCase):
