@@ -1,0 +1,22 @@
+{
+  "id": "temporal-witness",
+  "source_root": "E:/station",
+  "files": [
+    {
+      "source": "forecast.py",
+      "dest": "forecast.py",
+      "sha256": "fb0addd3baf88b35712f75e92495842494896b600c41c3ca81c24f947238d347"
+    },
+    {
+      "source": "grafts/temporal-witness/check.py",
+      "dest": "check.py",
+      "sha256": "8c4e9c0225ef3beeabb19de99c8386ab9c74c95fb94e62a75956c63d1c2aa236"
+    },
+    {
+      "source": "grafts/temporal-witness/signal.jsonl",
+      "dest": "signal.jsonl",
+      "sha256": "5e2b604bac908660c6da98d02163c859c4eedfb1750d92a1c9642678979965fb"
+    }
+  ],
+  "check": "check.py"
+}

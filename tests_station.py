@@ -483,6 +483,34 @@ class HorizonTests(unittest.TestCase):
         self.assertIn("market authority drift", station.horizon.validate(broken)[0])
 
 
+class GraftTests(unittest.TestCase):
+    """A graft must run its copied bytes, not quietly import the donor body."""
+
+    def test_hash_pinned_module_survives_a_stripped_transplant(self):
+        root = Path(tempfile.mkdtemp())
+        (root / "subject.py").write_text("VALUE = 7\n", encoding="utf-8")
+        (root / "check.py").write_text(
+            "from pathlib import Path\nimport subject\n"
+            "assert Path(subject.__file__).resolve().parent == Path.cwd().resolve()\n"
+            "assert subject.VALUE == 7\nprint('GRAFT-CHECK-OK')\n", encoding="utf-8")
+        manifest = {
+            "id": "portable-value", "source_root": str(root), "check": "check.py",
+            "files": [
+                {"source": "subject.py", "dest": "subject.py",
+                 "sha256": station.graft.sha256((root / "subject.py").read_bytes())},
+                {"source": "check.py", "dest": "check.py",
+                 "sha256": station.graft.sha256((root / "check.py").read_bytes())},
+            ],
+        }
+        manifest_path = root / "manifest.json"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        result = station.graft.run(manifest_path)
+        self.assertEqual(result["status"], "GRAFT-OK")
+        self.assertIn("GRAFT-CHECK-OK", result["tail"])
+        (root / "subject.py").write_text("VALUE = 8\n", encoding="utf-8")
+        self.assertEqual(station.graft.run(manifest_path)["status"], "GRAFT-ROT")
+
+
 class OrganTests(unittest.TestCase):
     """station organs (spiral turn 51): the ledger read as a registry."""
 

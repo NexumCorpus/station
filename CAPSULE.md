@@ -68,6 +68,9 @@ COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
   horizon [--json]         executive decision frontier: ranks already-accepted
                            obligations by cost of delay with evidence, executor,
                            and remaining authority; it never acts or authorizes
+  graft [verify <id>|<id>]  xenograft: verify a hash-pinned micro-capability
+                           in an empty temporary body; lossless only for the
+                           declared file slice, not a claim of whole-estate context
   cure "<fragment>"        grimoire lookup FIRST on any error
   pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
 

@@ -29,3 +29,4 @@
 {"claim": "counterfactual immunity remains current: every armed lesion must kill its registered suite and source edits expire old results (turn 104)", "cmd": "python E:/station/checks/immunity.py", "expect": "CHECK-OK"}
 {"claim": "temporal witness closes its loop: forecast routes remain structured, no armed future ages past due, and every resolution is reviewed (turn 114)", "cmd": "python E:/station/checks/forecast.py", "expect": "CHECK-OK"}
 {"claim": "executive horizon preserves evidence/executor/authority boundaries while aggregating live obligations (turn 120)", "cmd": "python E:/station/checks/horizon.py", "expect": "CHECK-OK"}
+{"claim": "declared xenografts still run from their exact hash-pinned context slices in empty local bodies (turn 123)", "cmd": "python E:/station/checks/grafts.py", "expect": "CHECK-OK"}

@@ -337,7 +337,7 @@ dated):**
   (count performing→having *conversions*, not tokens). Until then, read the
   number as a stuck gauge, not a verdict.
 
-## 16. The spiral era — the self-model grew itself (through turn 120, §18-19 continue it)
+## 16. The spiral era — the self-model grew itself (through turn 123, §18-19 continue it)
 
 The synthesis (§15) was read off a finished animal. Then the spiral ran, and
 the animal kept building — not new limbs but sharper *senses and self-honesty*.
@@ -545,6 +545,32 @@ different authority boundaries legible. *Kill:* if an aggregated item loses its
 authority/evidence/executor field, integrity rot fails to outrank optional work,
 or horizon runs a displayed command, the executive surface becomes an
 unauthorized will and must be removed.
+
+**Turns 121-123: a capability became a transplant rather than a story.** The
+estate already stored exact bytes in shards and codewords, but preservation alone
+does not show that a capability can wake elsewhere without its surrounding
+context. A xenograft manifest names a tiny, hash-pinned file slice and one fixed
+check. The runner verifies the donor hashes, copies *only* those bytes into an
+empty temporary body, suppresses user Python state, and executes the check from
+inside that body. A check must assert it imported the transplanted module rather
+than `E:/station`.
+
+This is lossless context management at the declared-slice level. Nothing in the
+manifest's slice is summarized, inferred, or re-created: every byte is pinned
+and copied. The reduction is structural—carry three files for the temporal
+witness rather than narrating an estate—while the full source remains recoverable
+through git and the sharded codeword. It is not a claim that three files contain
+the whole organism, a security sandbox, or independent corroboration. A failed
+graft means hidden context dependence; the honest repair is to externalize the
+dependency or narrow the portability claim.
+
+The first graft carried `forecast.py`, a local JSONL signal, and its check. In
+the stripped body it validated a future contract, evaluated its frozen route,
+computed Brier loss, and proved the imported module lived in the graft. That is
+portable possession of one narrow organ. *Kill:* if a manifest's source hash can
+drift unnoticed, the check imports the donor estate, or a graft is described as
+full-system portability/security/independent validation, the transplant is
+theater and must be removed.
 
 ## 17. The meta — architecture and science are one motion (2026-07-05)
 

@@ -47,6 +47,8 @@ Commands:
                             future probability + local route + divergent actions
   station horizon [--json]  executive frontier: rank obligations with evidence,
                             executor tier, and authority; never authorizes action
+  station graft [verify <id>|<id>]  xenograft: run a hash-pinned capability
+                            transplant in an empty temporary local body
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
@@ -108,6 +110,7 @@ from __future__ import annotations
 
 import hashlib
 import forecast
+import graft
 import horizon
 import immunity
 import json
@@ -140,6 +143,7 @@ IMMUNITY = HERE / "immunity.jsonl"
 IMMUNE_PACKS = HERE / "immune"
 FORECASTS = HERE / "forecasts.jsonl"
 FORECAST_PACKS = HERE / "forecasts"
+GRAFTS = HERE / "grafts"
 SUITE_TIMEOUT_S = 900
 
 
@@ -1505,6 +1509,52 @@ def cmd_horizon(args_: list):
         print(horizon.render(items))
 
 
+def _graft_manifests() -> dict[str, Path]:
+    manifests = {}
+    if not GRAFTS.is_dir():
+        return manifests
+    for path in sorted(GRAFTS.glob("*/manifest.json")):
+        try:
+            manifest = graft.load(path)
+            manifests[manifest["id"]] = path
+        except ValueError as exc:
+            print(f"GRAFT-ROT {path}: {exc}")
+    return manifests
+
+
+def cmd_graft(args_: list):
+    """List/verify xenografts. Verification copies only manifest bytes to a
+    fresh temporary body; it never mutates the estate or imports source state."""
+    manifests = _graft_manifests()
+    if not args_:
+        if not manifests:
+            print("graft empty | add grafts/<id>/manifest.json")
+            return
+        for ident, path in manifests.items():
+            manifest = graft.load(path)
+            problems = graft.verify_sources(manifest)
+            print(f"{'ROT ' if problems else 'READY'} {ident:<28} files={len(manifest['files'])}"
+                  + (" | " + "; ".join(problems) if problems else ""))
+        return
+    if args_[0] == "verify":
+        if len(args_) != 2 or args_[1] not in manifests:
+            print(f"usage: station graft verify <id>; known: {', '.join(manifests)}")
+            sys.exit(1)
+        result = graft.run(manifests[args_[1]])
+        print(f"{result['status']} {result['id']} files={result.get('files', 0)}"
+              + (f" | {result.get('tail', '')}" if result.get("tail") else "")
+              + (f" | {'; '.join(result['problems'])}" if result.get("problems") else ""))
+        if result["status"] != "GRAFT-OK":
+            sys.exit(1)
+        return
+    if args_[0] in manifests:
+        manifest = graft.load(manifests[args_[0]])
+        print(json.dumps(manifest, indent=2))
+        return
+    print("usage: station graft [verify <id>|<id>]")
+    sys.exit(1)
+
+
 def cmd_rescue(repo: str):
     """Offsite-snapshot a repo's UNTRACKED files into the continuity mirror
     (private remote). Untracked = the one class of paid work that neither
@@ -2705,6 +2755,8 @@ def main():
         cmd_forecast(args[1:])
     elif cmd == "horizon":
         cmd_horizon(args[1:])
+    elif cmd == "graft":
+        cmd_graft(args[1:])
     elif cmd == "lease":
         cmd_lease(args[1:])
     elif cmd == "rescue":
