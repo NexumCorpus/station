@@ -45,6 +45,8 @@ Commands:
                             disposable suite copy; retain only checks that feel it
   station forecast [arm|resolve|review|report|<id>]  temporal witness: seal a
                             future probability + local route + divergent actions
+  station horizon [--json]  executive frontier: rank obligations with evidence,
+                            executor tier, and authority; never authorizes action
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
@@ -106,6 +108,7 @@ from __future__ import annotations
 
 import hashlib
 import forecast
+import horizon
 import immunity
 import json
 import os
@@ -475,6 +478,15 @@ def cmd_wake():
             lines.append(f"forecast {len(forecasts)} futures | {summary}"
                          + (f" | DUE: {', '.join(overdue)}" if overdue else "")
                          + " -> station forecast")
+    except (json.JSONDecodeError, KeyError, ValueError):
+        pass
+    try:
+        items = _horizon_items()
+        urgent = [item for item in items if item["rank"] < 100]
+        first = urgent[0] if urgent else (items[0] if items else None)
+        if first:
+            lines.append(f"horizon urgent={len(urgent)} next={first['kind']} "
+                         f"{first['source']}/{first['id']} -> station horizon")
     except (json.JSONDecodeError, KeyError, ValueError):
         pass
     lines += _log_freshness(reg)
@@ -1459,6 +1471,38 @@ def cmd_forecast(args_: list):
         return
     print("usage: station forecast [arm|resolve|review|audit|report <id>|<id>]")
     sys.exit(1)
+
+
+# ------------------------------------------------------------- horizon ------
+# The executive horizon folds existing contracts into one decision frontier.
+# It never writes a ledger or executes its displayed next route: ranking is a
+# cost-of-delay view, not a grant of authority or a substitute for direction.
+def _horizon_items() -> list[dict]:
+    reg = _registry()
+    suites = immunity.suite_index(reg)
+    immune_rot = []
+    for ident, row in _fold_immunity().items():
+        problems = immunity.verify(row["trial"], row.get("outcome"), suites)
+        if problems:
+            immune_rot.append({"id": ident, "problems": problems})
+    return horizon.collect(_now()[:10], _fold_preregs(), _fold_market(),
+                           _fold_forecasts(), immune_rot)
+
+
+def cmd_horizon(args_: list):
+    """Render the estate's accepted-obligation frontier without acting on it."""
+    if any(arg not in ("--json",) for arg in args_):
+        print("usage: station horizon [--json]")
+        sys.exit(1)
+    items = _horizon_items()
+    defects = horizon.validate(items)
+    if defects:
+        print("HORIZON-ROT " + " | ".join(defects))
+        sys.exit(1)
+    if "--json" in args_:
+        print(json.dumps(items, indent=2))
+    else:
+        print(horizon.render(items))
 
 
 def cmd_rescue(repo: str):
@@ -2659,6 +2703,8 @@ def main():
         cmd_immune(args[1:])
     elif cmd == "forecast":
         cmd_forecast(args[1:])
+    elif cmd == "horizon":
+        cmd_horizon(args[1:])
     elif cmd == "lease":
         cmd_lease(args[1:])
     elif cmd == "rescue":
