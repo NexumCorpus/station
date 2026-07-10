@@ -4,7 +4,8 @@ The RLM result (arXiv:2512.24601, findings: research/rlm.md) made section 12
 of ALIEN-ARCHITECTURE.md buildable: a small LOCAL model, given a fixed
 map-reduce loop instead of an open REPL (the paper's own evidence: untrained
 small models fail as free-form roots but work as directed workers), can read
-files far beyond any context window at ZERO metered cost.
+files far beyond any context window; local Ollama can be free, while a family
+CLI backend is account-metered according to its provider.
 
 What this buys the estate: transcript archaeology, log digestion, ledger
 questions — the exact class of work that cost ~10 metered calls at this
@@ -34,6 +35,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -44,7 +47,10 @@ from station import llm, llm_up                            # noqa: E402
 # Hermes is a schema/reading specialist; coding models stay assigned to build
 # routes. Override only when a local operator has deliberately installed a
 # different reader model.
-MODEL = os.environ.get("HERMES_MODEL", "hermes3:8b")
+BACKEND = os.environ.get("HERMES_BACKEND", "codex-cli").strip().lower()
+# Hermes reads default to a family agent through the authenticated Codex CLI.
+# Ollama remains an explicit fallback (`HERMES_BACKEND=ollama`), never silent.
+MODEL = os.environ.get("HERMES_MODEL", "gpt-5.5")
 CHUNK_BYTES = 28_000          # ~7K tokens: worker keeps headroom in 16K ctx
 NUM_CTX = 16_384              # ollama default 4-8K silently truncates (rlm.md)
 MAX_CALLS = 64
@@ -61,6 +67,70 @@ REDUCE_SYS = ("You synthesize. Given a QUESTION and NOTES extracted from a "
               "Keep [who] attributions — never ascribe one speaker's words "
               "to another. State plainly what the notes do not establish. "
               "Never invent facts absent from the notes.")
+
+
+def _codex_binary() -> str | None:
+    """Resolve the installed family CLI without reading or manufacturing keys."""
+    explicit = os.environ.get("ATLAS_CODEX_BIN")
+    if explicit and Path(explicit).is_file():
+        return explicit
+    root = Path(os.environ.get("LOCALAPPDATA", "")) / "OpenAI" / "Codex" / "bin"
+    if root.is_dir():
+        for version in sorted((p for p in root.iterdir() if p.is_dir()), reverse=True):
+            candidate = version / ("codex.exe" if os.name == "nt" else "codex")
+            if candidate.is_file():
+                return str(candidate)
+    found = shutil.which("codex.exe") or shutil.which("codex")
+    if found:
+        return found
+    return None
+
+
+def _codex_read(prompt: str, system: str, timeout: int) -> str | None:
+    binary = _codex_binary()
+    if not binary:
+        return None
+    prepared = ("You are Hermes, a bounded extractive reader.\n"
+                "Return only the requested answer; do not edit files, call tools, "
+                "or claim facts absent from the supplied text.\n\n"
+                f"READER RULES:\n{system}\n\n{prompt}")
+    args = [binary, "exec", "--json", "--color", "never", "--ignore-user-config",
+            "--model", MODEL, "-C", str(HERE), "-s", "read-only", prepared]
+    try:
+        proc = subprocess.run(args, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=timeout)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    answer = ""
+    for line in (proc.stdout or "").splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        item = event.get("item") or {}
+        if item.get("type") == "agent_message" and item.get("text"):
+            answer = str(item["text"])
+        if event.get("type") in ("turn.failed", "error"):
+            return None
+    return answer.strip() or None
+
+
+def _reader_call(prompt: str, system: str, num_ctx: int = NUM_CTX,
+                 timeout: int = 900) -> str | None:
+    if BACKEND == "codex-cli":
+        return _codex_read(prompt, system, timeout)
+    if BACKEND == "ollama":
+        return llm(prompt, model=MODEL, system=system, num_ctx=num_ctx,
+                   timeout=timeout)
+    return None
+
+
+def _backend_up() -> bool:
+    if BACKEND == "codex-cli":
+        return _codex_binary() is not None
+    if BACKEND == "ollama":
+        return llm_up()
+    return False
 
 
 def _read_any(path: Path) -> str:
@@ -95,8 +165,8 @@ def _chunks(text: str, size: int = CHUNK_BYTES):
 def ask(corpus: str, question: str, grep: str | None = None) -> dict:
     """Fixed map-reduce read. Returns {answer|error, calls, depth, chunks,
     bytes_read} — counts are part of the answer, not decoration."""
-    if not llm_up():
-        return {"error": "DOWN: local model unreachable", "calls": 0}
+    if not _backend_up():
+        return {"error": f"DOWN: Hermes backend unavailable ({BACKEND})", "calls": 0}
     raw_bytes = len(corpus)
     if grep:
         kept = [ln for ln in corpus.splitlines()
@@ -113,8 +183,7 @@ def ask(corpus: str, question: str, grep: str | None = None) -> dict:
     if len(corpus) <= CHUNK_BYTES:
         # fits whole: answer directly off the raw bytes — a map stage here
         # would only launder context through a lossy extract for no reason
-        r = llm(f"QUESTION: {question}\n\nDOCUMENT:\n{corpus}",
-                model=MODEL, system=REDUCE_SYS, num_ctx=NUM_CTX)
+        r = _reader_call(f"QUESTION: {question}\n\nDOCUMENT:\n{corpus}", REDUCE_SYS)
         if r is None:
             return {"error": "DOWN at direct read", "calls": 1}
         return {"answer": r.strip(), "calls": 1, "depth": 0, "chunks": 1,
@@ -129,8 +198,7 @@ def ask(corpus: str, question: str, grep: str | None = None) -> dict:
             if calls >= MAX_CALLS:
                 partials.append("[BUDGET EXHAUSTED — remainder unread]")
                 break
-            r = llm(f"QUESTION: {question}\n\nPIECE:\n{p}",
-                    model=MODEL, system=MAP_SYS, num_ctx=NUM_CTX)
+            r = _reader_call(f"QUESTION: {question}\n\nPIECE:\n{p}", MAP_SYS)
             calls += 1
             if r is None:
                 return {"error": f"DOWN mid-read after {calls} calls",
@@ -141,8 +209,7 @@ def ask(corpus: str, question: str, grep: str | None = None) -> dict:
         depth += 1
         if len(notes) <= CHUNK_BYTES:
             break
-    r = llm(f"QUESTION: {question}\n\nNOTES:\n{notes[:CHUNK_BYTES]}",
-            model=MODEL, system=REDUCE_SYS, num_ctx=NUM_CTX)
+    r = _reader_call(f"QUESTION: {question}\n\nNOTES:\n{notes[:CHUNK_BYTES]}", REDUCE_SYS)
     calls += 1
     if r is None:
         return {"error": f"DOWN at synthesis after {calls} calls",
@@ -174,7 +241,7 @@ def digest():
     anything load-bearing is re-verified at the source."""
     import time as _t
     reg = json.loads((HERE / "station.json").read_text(encoding="utf-8-sig"))
-    model = DIGEST_MODEL if _has_model(DIGEST_MODEL) else MODEL
+    model = MODEL
     out_lines, done = [], 0
     for name, path in reg.get("logs", {}).items():
         if done >= 2:                      # bound the beat
@@ -190,8 +257,7 @@ def digest():
         raw = p.read_bytes()[seen:]
         text = raw.decode("utf-16", "replace") if raw[:2000].count(0) \
             > len(raw[:2000]) // 4 else raw.decode("utf-8", "replace")
-        r = llm(f"LOG {name} (new bytes {seen}-{size}):\n{text[:CHUNK_BYTES]}",
-                model=model, system=DIGEST_SYS, num_ctx=NUM_CTX)
+        r = _reader_call(f"LOG {name} (new bytes {seen}-{size}):\n{text[:CHUNK_BYTES]}", DIGEST_SYS)
         if r is None:
             print("[digest] model DOWN — nothing consumed")
             return
@@ -240,11 +306,11 @@ def main():
         print(f"[hermes] {res['error']}")
         sys.exit(2)
     print(res["answer"])
-    print(f"\n[hermes] calls={res['calls']} depth={res['depth']} "
-          f"chunks={res['chunks']} bytes={res['bytes_read']:,} cost=$0")
+    cost = "$0 local" if BACKEND == "ollama" else "account-metered/unknown"
+    print(f"\n[hermes] backend={BACKEND} model={MODEL} calls={res['calls']} depth={res['depth']} "
+          f"chunks={res['chunks']} bytes={res['bytes_read']:,} cost={cost}")
     print("[hermes] SCOPE: substance advisory, ATTRIBUTION UNRELIABLE — the "
-          "7B smears who-said-what (measured 2026-07-04, prompt law did not "
-          "bind). Verify speakers at source before any load-bearing use.")
+          "the model may be wrong. Verify load-bearing facts at source.")
 
 
 if __name__ == "__main__":

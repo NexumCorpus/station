@@ -1907,6 +1907,7 @@ def cmd_hermes(args_: list[str]):
         sys.exit(1)
     _spine_append("hermes-read", {"source": source, "grep": grep,
                                    "question": question[:160],
+                                   "backend": getattr(reader, "BACKEND", "unknown"),
                                    "model": getattr(reader, "MODEL", "unknown"),
                                    "calls": result.get("calls", 0),
                                    "bytes": result.get("bytes_read", 0),
@@ -1915,8 +1916,10 @@ def cmd_hermes(args_: list[str]):
         print(f"[hermes] {result['error']}")
         sys.exit(2)
     print(result.get("answer", ""))
-    print(f"\n[hermes] model={getattr(reader, 'MODEL', 'unknown')} calls={result.get('calls', 0)} depth={result.get('depth', 0)} "
-          f"chunks={result.get('chunks', 0)} bytes={result.get('bytes_read', 0):,} cost=$0")
+    backend = getattr(reader, "BACKEND", "unknown")
+    cost = "$0 local" if backend == "ollama" else "account-metered/unknown"
+    print(f"\n[hermes] backend={backend} model={getattr(reader, 'MODEL', 'unknown')} calls={result.get('calls', 0)} depth={result.get('depth', 0)} "
+          f"chunks={result.get('chunks', 0)} bytes={result.get('bytes_read', 0):,} cost={cost}")
     print("[hermes] SCOPE: advisory reading; verify load-bearing facts against source")
 
 
