@@ -337,7 +337,7 @@ dated):**
   (count performing→having *conversions*, not tokens). Until then, read the
   number as a stuck gauge, not a verdict.
 
-## 16. The spiral era — the self-model grew itself (through turn 115, §18-19 continue it)
+## 16. The spiral era — the self-model grew itself (through turn 120, §18-19 continue it)
 
 The synthesis (§15) was read off a finished animal. Then the spiral ran, and
 the animal kept building — not new limbs but sharper *senses and self-honesty*.
@@ -519,6 +519,32 @@ Together they make both spatial counterfactuals and temporal counterfactuals
 auditable. *Kill:* if a forecast can be armed after its due date, resolved by
 free text or arbitrary code, left overdue without drift alarm, or presented as
 calibration before a meaningful resolved sample, the future organ is ceremony.
+
+**Turns 116-120: the organs acquired an executive horizon without acquiring a
+will.** Individually correct organs can still create a broad failure: attention
+fragmentation. A cold instance sees overdue preregs, stale immune receipts,
+market deadlines, and forecast clocks as unrelated alerts and either pays to
+reconstruct their relation or follows the loudest one. `station horizon` folds
+only *accepted obligations* into a single cost-of-delay frontier: integrity rot
+first, then overdue mechanical observation, then overdue scoring, external
+market deadlines, and future WAIT states.
+
+The essential restraint is encoded per item. Every horizon entry carries its
+evidence boundary, executor tier, remaining authority, and smallest next route.
+An immune replay belongs to a deterministic registered suite; a forecast can be
+mechanically observed but its branch needs human review; a prereg requires its
+named scorer plus ratification; market scoring remains human plus external
+evidence. The horizon ranks none of these projects by value and cannot execute
+its next route. It is a cortex that exposes the nerve signals, not a sovereign.
+
+The live frontier revealed the point immediately: all three immune receipts
+became stale when the horizon itself altered `station.py`, while two old preregs
+were due and the market/forecast contracts correctly said WAIT. The system did
+not silently repair, score, contact anyone, or invent demand; it made the five
+different authority boundaries legible. *Kill:* if an aggregated item loses its
+authority/evidence/executor field, integrity rot fails to outrank optional work,
+or horizon runs a displayed command, the executive surface becomes an
+unauthorized will and must be removed.
 
 ## 17. The meta — architecture and science are one motion (2026-07-05)
 

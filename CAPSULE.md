@@ -65,6 +65,9 @@ COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
                            future p + strictly-future due date + frozen local
                            route + divergent YES/NO actions; time resolves, a
                            resolution needs review, and no result = calibration
+  horizon [--json]         executive decision frontier: ranks already-accepted
+                           obligations by cost of delay with evidence, executor,
+                           and remaining authority; it never acts or authorizes
   cure "<fragment>"        grimoire lookup FIRST on any error
   pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
 

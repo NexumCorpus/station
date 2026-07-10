@@ -17,6 +17,7 @@ same bytes.
 | `station market` | evidence-bound commercial hypotheses; `pack` renders a hash-carrying scope note and `PAID` is legal only with a local receipt pointer |
 | `station immune` | pre-registered one-site lesions against a registered suite, applied only to a disposable copy; a result is current only while the wounded source hash still matches |
 | `station forecast` | append-only future commitments with probability, frozen local observation route, divergent action branches, clock-gated resolution, Brier receipt, and mandatory review |
+| `station horizon` | one non-authorizing frontier across integrity, prereg, market, and forecast obligations; every item carries evidence, executor tier, remaining authority, and next route |
 | `station burn / eras / vitals / quota` | persistent daily burn counter + **per-certification-era accounting**: the "metered tokens per certified claim, trending down" vital sign in decidable form |
 | `station drift / witness / backup / rescue` | executable cross-reference assertions · append-only notary (alarms on history rewrite) · continuity mirror · offsite snapshots of *untracked* work |
 | `station note / spine / tally / map / cure / errata / pin` | telegraph · filtered event reads · ledger stats · AST outlines · grimoire lookup · self-error ledger · content-hash pointers |
