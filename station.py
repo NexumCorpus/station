@@ -41,6 +41,8 @@ Commands:
   station market [arm|score|pack|verify|<id>]  evidence-bound income hypotheses:
                             local proof + external test + kill; PAID requires an
                             existing local receipt pointer
+  station immune [arm|run|verify|report|<id>]  counterfactual immunity: wound a
+                            disposable suite copy; retain only checks that feel it
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
@@ -101,6 +103,7 @@ Commands:
 from __future__ import annotations
 
 import hashlib
+import immunity
 import json
 import os
 import re
@@ -127,6 +130,7 @@ ERRATA = HERE / "errata.jsonl"
 SPIRAL = HERE / "spiral.jsonl"
 MARKET = HERE / "market.jsonl"
 MARKET_PACKS = HERE / "market"
+IMMUNITY = HERE / "immunity.jsonl"
 SUITE_TIMEOUT_S = 900
 
 
@@ -436,6 +440,18 @@ def cmd_wake():
                          + (f" | DUE: {', '.join(due)}" if due else "")
                          + " -> station market")
     except (json.JSONDecodeError, KeyError):
+        pass
+    try:
+        immune = _fold_immunity()
+        if immune:
+            states = {}
+            for row in immune.values():
+                status = (row.get("outcome") or {}).get("status", "armed")
+                states[status] = states.get(status, 0) + 1
+            summary = " ".join(f"{state}={count}"
+                               for state, count in sorted(states.items()))
+            lines.append(f"immune {len(immune)} lesions | {summary} -> station immune")
+    except (json.JSONDecodeError, KeyError, ValueError):
         pass
     lines += _log_freshness(reg)
     if SPINE.is_file():
@@ -1162,6 +1178,73 @@ def cmd_market(args_: list):
         _market_show(rows[op])
         return
     print("usage: station market [arm|score <id> <verdict> <evidence...>|pack|verify <id>|<id>]")
+    sys.exit(1)
+
+
+# -------------------------------------------------------------- immune ------
+# The counterfactual-immunity ledger makes tests earn their protection: a
+# named guard matters only if its registered suite rejects a nearby, declared
+# wound in a disposable copy. It cannot mutate the live body or pick its own
+# friendly command.
+def _immune_actor() -> str:
+    return os.environ.get("STATION_ACTOR", f"pid{os.getpid()}")
+
+
+def _immune_rows() -> list[dict]:
+    if not IMMUNITY.is_file():
+        return []
+    return [json.loads(line) for line in
+            IMMUNITY.read_text(encoding="utf-8-sig").splitlines()
+            if line.strip()]
+
+
+def _fold_immunity() -> dict[str, dict]:
+    return immunity.fold(_immune_rows())
+
+
+def _immune_show(ident: str, row: dict):
+    trial, outcome = row["trial"], row.get("outcome")
+    status = "armed" if not outcome else outcome.get("status", "?")
+    print(f"{status:<16} {ident:<30} suite={trial['suite']} target={trial['target']}")
+    print(f"  reason: {trial['reason'][:160]}")
+    print(f"  kill: {trial['kill'][:160]}")
+
+
+def cmd_immune(args_: list):
+    """Arm/list pre-registered counterfactual lesions.
+
+    `arm` takes one JSON trial from stdin. Execution, verification, and reports
+    are deliberately added as separate verbs: a trial record by itself is not
+    evidence that any checker felt the wound.
+    """
+    rows = _fold_immunity()
+    if not args_:
+        if not rows:
+            print("immune empty | arm a lesion with: station immune arm < trial.json")
+            return
+        for ident, row in rows.items():
+            _immune_show(ident, row)
+        return
+    if args_[0] == "arm":
+        try:
+            trial = json.loads(sys.stdin.read())
+            immunity.validate_trial(trial, immunity.suite_index(_registry()))
+            if trial["id"] in rows:
+                raise ValueError("immune trial already exists: " + trial["id"])
+        except (json.JSONDecodeError, ValueError) as exc:
+            print(f"immune arm refused: {exc}")
+            sys.exit(1)
+        entry = {key: trial[key] for key in immunity.REQUIRED}
+        entry.update({"kind": "trial", "t": _now(), "by": _immune_actor()})
+        _append_line(IMMUNITY, json.dumps(entry) + "\n")
+        _spine_append("immune-arm", {"id": entry["id"], "suite": entry["suite"],
+                                      "target": entry["target"]})
+        print(f"[immune] armed {entry['id']} | suite={entry['suite']} | target={entry['target']}")
+        return
+    if args_[0] in rows:
+        _immune_show(args_[0], rows[args_[0]])
+        return
+    print("usage: station immune [arm|<id>]  (run/verify/report land after runner is installed)")
     sys.exit(1)
 
 
@@ -2359,6 +2442,8 @@ def main():
         cmd_preregs(args[1:])
     elif cmd == "market":
         cmd_market(args[1:])
+    elif cmd == "immune":
+        cmd_immune(args[1:])
     elif cmd == "lease":
         cmd_lease(args[1:])
     elif cmd == "rescue":
