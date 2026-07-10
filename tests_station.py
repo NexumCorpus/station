@@ -601,6 +601,20 @@ class SutureTests(unittest.TestCase):
         pack["slices"][0]["b64"] = "AAAA"
         self.assertEqual(station.suture.verify(pack)["status"], "SUTURE-ROT")
 
+    def test_measure_reports_bytes_not_imaginary_token_savings(self):
+        root = Path(tempfile.mkdtemp())
+        source = root / "state.txt"
+        source.write_bytes(b"0123456789")
+        manifest = {"id": "measured-context", "purpose": "measure selection",
+                    "slices": [{"source": str(source), "start": 2, "end": 5,
+                                "dest": "state.txt"}]}
+        pack = station.suture.seal(manifest, [root], "2030-01-01T00:00:00Z")
+        economics = station.suture.measure(pack)
+        self.assertEqual(economics["payload_bytes"], 3)
+        self.assertEqual(economics["donor_bytes"], 10)
+        self.assertEqual(economics["avoided_bytes"], 7)
+        self.assertIn("not tokenizer tokens", station.suture.render_measure(pack, economics))
+
     def test_manifest_refuses_context_outside_registered_roots(self):
         root, outside = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
         source = outside / "outside.txt"

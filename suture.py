@@ -121,7 +121,42 @@ def verify(pack: dict) -> dict:
             "problems": donor_drift, "bytes": total, "slices": len(rows)}
 
 
+def measure(pack: dict) -> dict:
+    """Report exact byte economics, never pretend a byte count is a tokenizer
+    count.  A suture wins only when its declared payload is smaller than the
+    donor scope the next task would otherwise load; base64 is storage overhead,
+    not a magical compression scheme."""
+    rows = pack.get("slices", []) if isinstance(pack, dict) else []
+    payload = 0
+    sources: dict[str, int] = {}
+    for item in rows:
+        try:
+            payload += len(base64.b64decode(item["b64"].encode("ascii"), validate=True))
+            source = Path(item["source"])
+            sources[str(source)] = source.stat().st_size
+        except (KeyError, OSError, TypeError, ValueError, base64.binascii.Error):
+            return {"status": "SUTURE-ROT", "problems": ["cannot measure unreadable payload"]}
+    donor = sum(sources.values())
+    packed = len(json.dumps(pack, separators=(",", ":")).encode("utf-8"))
+    meta = packed - sum(len(str(item.get("b64", ""))) for item in rows)
+    return {"status": "SUTURE-ECONOMY", "payload_bytes": payload,
+            "donor_bytes": donor, "avoided_bytes": max(0, donor - payload),
+            "pack_bytes": packed, "metadata_bytes": meta,
+            "sources": len(sources), "slices": len(rows)}
+
+
 def render(pack: dict, result: dict) -> str:
     return (f"{result['status']} {pack.get('id', '?')} slices={result.get('slices', 0)} "
             f"bytes={result.get('bytes', 0)}"
             + (" | " + "; ".join(result["problems"]) if result.get("problems") else ""))
+
+
+def render_measure(pack: dict, result: dict) -> str:
+    if result["status"] != "SUTURE-ECONOMY":
+        return result["status"] + " " + pack.get("id", "?") + " | " + "; ".join(result.get("problems", []))
+    donor = result["donor_bytes"]
+    pct = (100 * result["payload_bytes"] / donor) if donor else 0
+    return (f"SUTURE-ECONOMY {pack.get('id', '?')} payload={result['payload_bytes']}B "
+            f"donor={donor}B selected={pct:.1f}% avoided={result['avoided_bytes']}B "
+            f"pack={result['pack_bytes']}B metadata={result['metadata_bytes']}B "
+            "| exact bytes, not tokenizer tokens")

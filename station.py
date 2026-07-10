@@ -51,7 +51,7 @@ Commands:
                             transplant in an empty temporary local body
   station organism [run|last]  fixed whole-body rehearsal across all named
                             organs; append a deterministic observation receipt
-  station suture [seal|verify|<id>]  preserve exact declared context byte
+  station suture [seal|verify|measure|<id>]  preserve exact declared context byte
                             slices; verify payload and donor drift, never execute
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
@@ -1748,11 +1748,15 @@ def cmd_suture(args_: list[str]):
                                        "bytes": result.get("bytes", 0)})
         print(suture.render(pack, result))
         return
-    ident = args_[1] if len(args_) == 2 and args_[0] == "verify" else args_[0]
+    mode = args_[0] if len(args_) == 2 else ""
+    ident = args_[1] if mode in ("verify", "measure") else args_[0]
     if ident not in packs:
         print(f"usage: station suture [seal|verify <id>|list|<id>]; known: {', '.join(packs)}")
         sys.exit(1)
     pack = json.loads(packs[ident].read_text(encoding="utf-8-sig"))
+    if mode == "measure":
+        print(suture.render_measure(pack, suture.measure(pack)))
+        return
     result = suture.verify(pack)
     print(suture.render(pack, result))
     if result["status"] != "SUTURE-OK":

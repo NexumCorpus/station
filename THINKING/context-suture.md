@@ -23,3 +23,16 @@ The falsifier is simple: if a payload byte changes undetected, source roots can
 escape the registered estate, an existing id can be silently rewritten, or donor
 drift is rendered as current, then the suture is an unmarked summary wearing an
 alien name and must be removed.
+
+## Economics are selection, not magic
+
+`station suture measure <id>` reports raw bytes, explicitly not model tokens.
+The first `organism-receipt-schema` pack selects all 3,393 bytes of its donor
+and stores 5,080 bytes because base64 plus metadata costs space: it is a
+portable exact cache, not a saving. The narrower `organism-receipt-contract`
+pack carries two exact intervals (constants plus report/render) totaling 2,157
+of the 3,393 donor bytes: 1,236 bytes are avoided only for the declared task of
+interpreting an existing receipt. Its 3,748-byte stored form still has transport
+overhead. The honest efficiency appears when a successor loads the raw decoded
+2,157 bytes instead of the full donor or wider estate, and reuses the verified
+pointer; no tokenizer or reasoning-quality gain is claimed from a byte count.
