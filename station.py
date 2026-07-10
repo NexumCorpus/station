@@ -1350,8 +1350,9 @@ def _forecast_show(ident: str, row: dict):
 def cmd_forecast(args_: list):
     """Arm/list temporal-witness forecasts.
 
-    An armed row is not a result: it only says an expectation was bound before
-    its due date. Resolution and review are added after their mechanics exist.
+    `arm` binds an expectation before its due date. `resolve` is clock-gated
+    and reads only the frozen local route; `review` records the action branch
+    taken after a resolution. An armed row by itself is not calibration evidence.
     """
     rows = _fold_forecasts()
     if not args_:
@@ -1377,10 +1378,70 @@ def cmd_forecast(args_: list):
                                         "due": entry["due"]})
         print(f"[forecast] armed {entry['id']} p={entry['p']:.2f} due={entry['due']}")
         return
+    if args_[0] == "resolve":
+        if len(args_) != 2 or args_[1] not in rows:
+            print(f"usage: station forecast resolve <id>; known: {', '.join(rows)}")
+            sys.exit(1)
+        ident, row = args_[1], rows[args_[1]]
+        if row.get("resolution"):
+            print("forecast resolve refused: already resolved; history is append-only")
+            sys.exit(1)
+        item = row["forecast"]
+        if forecast.date(_now()[:10]) < forecast.date(item["due"]):
+            print(f"forecast resolve refused: due {item['due']} has not arrived")
+            sys.exit(1)
+        observation = forecast.evaluate(item["route"])
+        entry = {"kind": "resolution", "id": ident, "yes": observation["yes"],
+                 "observation": observation,
+                 "brier": forecast.brier(item["p"], observation["yes"]),
+                 "t": _now(), "by": _forecast_actor()}
+        _append_line(FORECASTS, json.dumps(entry) + "\n")
+        _spine_append("forecast-resolution", {"id": ident, "yes": entry["yes"],
+                                                "brier": entry["brier"],
+                                                "source": observation.get("source_sha")})
+        print(f"[forecast] {ident} -> {'YES' if entry['yes'] else 'NO'} "
+              f"brier={entry['brier']:.3f} | {observation['detail']}")
+        return
+    if args_[0] == "review":
+        if len(args_) < 4 or args_[1] not in rows:
+            print("usage: station forecast review <id> <YES|NO|DECLINE> <note...>")
+            sys.exit(1)
+        ident, branch, note = args_[1], args_[2].upper(), " ".join(args_[3:]).strip()
+        row = rows[ident]
+        if not row.get("resolution"):
+            print("forecast review refused: resolve mechanically before narrating a response")
+            sys.exit(1)
+        if row.get("review"):
+            print("forecast review refused: already reviewed; amend with a new forecast")
+            sys.exit(1)
+        if branch not in ("YES", "NO", "DECLINE") or not note:
+            print("review branch must be YES, NO, or DECLINE and note must be non-empty")
+            sys.exit(1)
+        observed = "YES" if row["resolution"]["yes"] else "NO"
+        if branch in ("YES", "NO") and branch != observed:
+            print(f"forecast review refused: observed {observed}; choose its action branch or DECLINE")
+            sys.exit(1)
+        entry = {"kind": "review", "id": ident, "branch": branch, "note": note,
+                 "t": _now(), "by": _forecast_actor()}
+        _append_line(FORECASTS, json.dumps(entry) + "\n")
+        _spine_append("forecast-review", {"id": ident, "branch": branch,
+                                           "note": note[:160]})
+        print(f"[forecast] {ident} reviewed branch={branch}")
+        return
+    if args_[0] == "audit":
+        summary = forecast.stats(rows)
+        brier = "-" if summary["mean_brier"] is None else f"{summary['mean_brier']:.4f}"
+        print(f"FORECASTS total={summary['total']} resolved={summary['resolved']} "
+              f"reviewed={summary['reviewed']} mean_brier={brier}")
+        for ident, row in rows.items():
+            state = forecast.status(row)
+            due = " DUE" if state == "ARMED" and row["forecast"]["due"] <= _now()[:10] else ""
+            print(f"{state:<11} {ident:<30} p={row['forecast']['p']:.2f} due={row['forecast']['due']}{due}")
+        return
     if args_[0] in rows:
         _forecast_show(args_[0], rows[args_[0]])
         return
-    print("usage: station forecast [arm|<id>]  (resolve/review/report land after the clock gate is installed)")
+    print("usage: station forecast [arm|resolve|review|audit <id>|<id>]  (report lands with receipts)")
     sys.exit(1)
 
 
