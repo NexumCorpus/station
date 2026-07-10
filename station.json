@@ -62,6 +62,7 @@
   "E:/station/burn-ledger.jsonl",
   "E:/station/preregs.jsonl",
   "E:/station/market.jsonl",
+  "E:/station/immunity.jsonl",
   "E:/station/shards.jsonl"
  ],
  "logs": {
@@ -72,6 +73,7 @@
   "mission1": "E:/mission-runs/wave1.log",
   "wave2": "E:/mission-runs/wave2.log",
   "market": "E:/station/market.jsonl",
+  "immune": "E:/station/immunity.jsonl",
   "digest": "E:/station/digests/*.md"
  }
 }
