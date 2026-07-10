@@ -20,6 +20,7 @@ ROUTE_KEYS = {
     "file_exists": {"kind", "path"},
     "file_contains": {"kind", "path", "needle"},
     "jsonl_count_at_least": {"kind", "path", "where", "at_least"},
+    "jsonl_count_at_most": {"kind", "path", "where", "at_most"},
 }
 
 
@@ -55,10 +56,12 @@ def validate_route(route: dict):
         raise ValueError("file_contains needle must be a string")
     if kind == "file_contains" and not route["needle"]:
         raise ValueError("file_contains needle must not be empty")
-    if kind == "jsonl_count_at_least":
-        if not isinstance(route["at_least"], int) or isinstance(route["at_least"], bool) \
-                or route["at_least"] < 1:
-            raise ValueError("jsonl_count_at_least at_least must be an integer >=1")
+    if kind in ("jsonl_count_at_least", "jsonl_count_at_most"):
+        bound = "at_least" if kind.endswith("at_least") else "at_most"
+        minimum = 1 if bound == "at_least" else 0
+        if not isinstance(route[bound], int) or isinstance(route[bound], bool) \
+                or route[bound] < minimum:
+            raise ValueError(f"{kind} {bound} must be an integer >={minimum}")
         where = route["where"]
         if not isinstance(where, dict):
             raise ValueError("jsonl_count_at_least where must be an object")
@@ -119,8 +122,9 @@ def evaluate(route: dict) -> dict:
     where = route["where"]
     count = sum(1 for row in rows if isinstance(row, dict)
                 and all(row.get(key) == value for key, value in where.items()))
-    yes = count >= route["at_least"]
-    return {"yes": yes, **base, "detail": f"count={count}/{route['at_least']}",
+    bound = "at_least" if route["kind"].endswith("at_least") else "at_most"
+    yes = count >= route[bound] if bound == "at_least" else count <= route[bound]
+    return {"yes": yes, **base, "detail": f"count={count}/{bound}={route[bound]}",
             "count": count, "malformed": malformed}
 
 

@@ -449,6 +449,13 @@ class ForecastTests(unittest.TestCase):
             self._arm(bad)
         self.assertFalse(station.FORECASTS.exists())
 
+    def test_absence_route_can_make_no_event_an_observable_yes(self):
+        route = {"kind": "jsonl_count_at_most", "path": str(self.source),
+                 "where": {"kind": "missing"}, "at_most": 0}
+        observed = station.forecast.evaluate(route)
+        self.assertTrue(observed["yes"])
+        self.assertIn("at_most=0", observed["detail"])
+
 
 class OrganTests(unittest.TestCase):
     """station organs (spiral turn 51): the ledger read as a registry."""
