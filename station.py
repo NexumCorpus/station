@@ -43,6 +43,8 @@ Commands:
                             existing local receipt pointer
   station immune [arm|run|verify|report|<id>]  counterfactual immunity: wound a
                             disposable suite copy; retain only checks that feel it
+  station forecast [arm|resolve|review|report|<id>]  temporal witness: seal a
+                            future probability + local route + divergent actions
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
@@ -103,6 +105,7 @@ Commands:
 from __future__ import annotations
 
 import hashlib
+import forecast
 import immunity
 import json
 import os
@@ -132,6 +135,7 @@ MARKET = HERE / "market.jsonl"
 MARKET_PACKS = HERE / "market"
 IMMUNITY = HERE / "immunity.jsonl"
 IMMUNE_PACKS = HERE / "immune"
+FORECASTS = HERE / "forecasts.jsonl"
 SUITE_TIMEOUT_S = 900
 
 
@@ -452,6 +456,24 @@ def cmd_wake():
             summary = " ".join(f"{state}={count}"
                                for state, count in sorted(states.items()))
             lines.append(f"immune {len(immune)} lesions | {summary} -> station immune")
+    except (json.JSONDecodeError, KeyError, ValueError):
+        pass
+    try:
+        forecasts = _fold_forecasts()
+        if forecasts:
+            states = {}
+            overdue = []
+            today = _now()[:10]
+            for ident, row in forecasts.items():
+                state = forecast.status(row)
+                states[state] = states.get(state, 0) + 1
+                if state == "ARMED" and row["forecast"]["due"] < today:
+                    overdue.append(ident)
+            summary = " ".join(f"{state}={count}"
+                               for state, count in sorted(states.items()))
+            lines.append(f"forecast {len(forecasts)} futures | {summary}"
+                         + (f" | DUE: {', '.join(overdue)}" if overdue else "")
+                         + " -> station forecast")
     except (json.JSONDecodeError, KeyError, ValueError):
         pass
     lines += _log_freshness(reg)
@@ -1293,6 +1315,72 @@ def cmd_immune(args_: list):
         _immune_show(args_[0], rows[args_[0]])
         return
     print("usage: station immune [arm|run|verify|report <id>|<id>]")
+    sys.exit(1)
+
+
+# ------------------------------------------------------------ forecast ------
+# Time is a blind instrument: a forecast can name its future observation and
+# action branches, but cannot choose the outcome or resolve itself early. The
+# route language is deliberately data-only; no trial carries shell code.
+def _forecast_actor() -> str:
+    return os.environ.get("STATION_ACTOR", f"pid{os.getpid()}")
+
+
+def _forecast_rows() -> list[dict]:
+    if not FORECASTS.is_file():
+        return []
+    return [json.loads(line) for line in
+            FORECASTS.read_text(encoding="utf-8-sig").splitlines()
+            if line.strip()]
+
+
+def _fold_forecasts() -> dict[str, dict]:
+    return forecast.fold(_forecast_rows())
+
+
+def _forecast_show(ident: str, row: dict):
+    item = row["forecast"]
+    state = forecast.status(row)
+    print(f"{state:<11} {ident:<30} p={item['p']:.2f} due={item['due']}")
+    print(f"  question: {item['question'][:180]}")
+    print(f"  YES -> {item['if_yes'][:120]}")
+    print(f"  NO  -> {item['if_no'][:120]}")
+
+
+def cmd_forecast(args_: list):
+    """Arm/list temporal-witness forecasts.
+
+    An armed row is not a result: it only says an expectation was bound before
+    its due date. Resolution and review are added after their mechanics exist.
+    """
+    rows = _fold_forecasts()
+    if not args_:
+        if not rows:
+            print("forecast empty | arm one with: station forecast arm < forecast.json")
+            return
+        for ident, row in rows.items():
+            _forecast_show(ident, row)
+        return
+    if args_[0] == "arm":
+        try:
+            item = json.loads(sys.stdin.read())
+            forecast.validate_forecast(item, forecast.date(_now()[:10]))
+            if item["id"] in rows:
+                raise ValueError("forecast already exists: " + item["id"])
+        except (json.JSONDecodeError, ValueError) as exc:
+            print(f"forecast arm refused: {exc}")
+            sys.exit(1)
+        entry = {key: item[key] for key in forecast.REQUIRED}
+        entry.update({"kind": "forecast", "t": _now(), "by": _forecast_actor()})
+        _append_line(FORECASTS, json.dumps(entry) + "\n")
+        _spine_append("forecast-arm", {"id": entry["id"], "p": entry["p"],
+                                        "due": entry["due"]})
+        print(f"[forecast] armed {entry['id']} p={entry['p']:.2f} due={entry['due']}")
+        return
+    if args_[0] in rows:
+        _forecast_show(args_[0], rows[args_[0]])
+        return
+    print("usage: station forecast [arm|<id>]  (resolve/review/report land after the clock gate is installed)")
     sys.exit(1)
 
 
@@ -2492,6 +2580,8 @@ def main():
         cmd_market(args[1:])
     elif cmd == "immune":
         cmd_immune(args[1:])
+    elif cmd == "forecast":
+        cmd_forecast(args[1:])
     elif cmd == "lease":
         cmd_lease(args[1:])
     elif cmd == "rescue":
