@@ -64,6 +64,7 @@
   "E:/station/market.jsonl",
   "E:/station/immunity.jsonl",
   "E:/station/forecasts.jsonl",
+  "E:/station/organism.jsonl",
   "E:/station/shards.jsonl"
  ],
  "logs": {
@@ -76,6 +77,7 @@
   "market": "E:/station/market.jsonl",
   "immune": "E:/station/immunity.jsonl",
   "forecast": "E:/station/forecasts.jsonl",
+  "organism": "E:/station/organism.jsonl",
   "digest": "E:/station/digests/*.md"
  }
 }

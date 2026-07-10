@@ -38,6 +38,17 @@ class StationTests(unittest.TestCase):
         bad, _, _ = station._run_check("cmd /c echo hello-spoor", "absent")
         self.assertFalse(bad)
 
+    def test_run_timeout_kills_the_command_tree(self):
+        # On Windows the shell alone is not the process that keeps the pipe
+        # open; this protects every registered suite from a fake deadline.
+        import time
+        start = time.monotonic()
+        code, output = station._run('python -c "import time; time.sleep(5)"',
+                                    str(self.tmp), timeout=1)
+        self.assertEqual(code, -1)
+        self.assertIn("timeout", output)
+        self.assertLess(time.monotonic() - start, 3)
+
     def test_say_true_claim_lands_as_fact(self):
         station.cmd_say(["a true thing", "--cmd", "cmd /c echo yes-42",
                         "--expect", "yes-42"])
@@ -509,6 +520,65 @@ class GraftTests(unittest.TestCase):
         self.assertIn("GRAFT-CHECK-OK", result["tail"])
         (root / "subject.py").write_text("VALUE = 8\n", encoding="utf-8")
         self.assertEqual(station.graft.run(manifest_path)["status"], "GRAFT-ROT")
+
+
+class OrganismTests(unittest.TestCase):
+    """A body receipt must retain all organs, fixed routes, and its limits."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.repos = {}
+        for name in station.organism.ORGANS:
+            path = self.tmp / name
+            path.mkdir()
+            if name == "boundary":
+                (path / "mission1").mkdir()
+            self.repos[name] = str(path)
+        self._organism, self._spine = station.ORGANISM, station.SPINE
+        self._registry, self._run, self._now = (station._registry, station._run,
+                                                 station._now)
+        station.ORGANISM, station.SPINE = self.tmp / "organism.jsonl", self.tmp / "spine.jsonl"
+        station._registry = lambda: {"repos": self.repos}
+        station._now = lambda: "2030-01-01T00:00:00Z"
+
+        def route(cmd, cwd, timeout=60):
+            if cmd == "git rev-parse HEAD":
+                return 0, "a" * 40 + "\n"
+            if cmd == "git status --porcelain":
+                return 0, ""
+            return 0, f"CHECK-OK {Path(cwd).name}:{cmd}"
+        station._run = route
+
+    def tearDown(self):
+        station.ORGANISM, station.SPINE = self._organism, self._spine
+        station._registry, station._run, station._now = self._registry, self._run, self._now
+
+    def test_fixed_roster_receipt_is_appendable_and_observational(self):
+        station.cmd_organism(["run"])
+        receipt, = [json.loads(line) for line in station.ORGANISM.read_text(
+            encoding="utf-8").splitlines()]
+        self.assertEqual(receipt["verdict"], "BODY-OK")
+        self.assertEqual(receipt["executor"], "deterministic fixed-route runner")
+        self.assertIn("no mutation", receipt["authority"])
+        self.assertEqual([row["organ"] for row in receipt["results"]],
+                         list(station.organism.ORGANS))
+        self.assertEqual(receipt["results"][2]["route"], "mission1-pytest")
+        self.assertTrue(receipt["results"][2]["tail"].startswith("CHECK-OK mission1"))
+
+    def test_failed_route_is_body_rot_not_silent_green(self):
+        original = station._run
+
+        def route(cmd, cwd, timeout=60):
+            if cmd == "python driver.py verify":
+                return 1, "SUBSTRATE MISMATCH"
+            return original(cmd, cwd, timeout)
+        station._run = route
+        with self.assertRaises(SystemExit) as cm:
+            station.cmd_organism(["run"])
+        self.assertEqual(cm.exception.code, 1)
+        receipt = json.loads(station.ORGANISM.read_text(encoding="utf-8").splitlines()[-1])
+        self.assertEqual(receipt["verdict"], "BODY-ROT")
+        self.assertEqual(receipt["results"][5]["status"], "ROT")
 
 
 class OrganTests(unittest.TestCase):

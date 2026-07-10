@@ -14,6 +14,7 @@ PAIRS = [
     ("E:/station/market.jsonl", "E:/continuity/station/market.jsonl"),
     ("E:/station/immunity.jsonl", "E:/continuity/station/immunity.jsonl"),
     ("E:/station/forecasts.jsonl", "E:/continuity/station/forecasts.jsonl"),
+    ("E:/station/organism.jsonl", "E:/continuity/station/organism.jsonl"),
     ("E:/atlas-station/CLAIMS.json", "E:/continuity/atlas/CLAIMS.json"),
 ]
 bad = []

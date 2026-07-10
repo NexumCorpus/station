@@ -49,6 +49,8 @@ Commands:
                             executor tier, and authority; never authorizes action
   station graft [verify <id>|<id>]  xenograft: run a hash-pinned capability
                             transplant in an empty temporary local body
+  station organism [run|last]  fixed whole-body rehearsal across all named
+                            organs; append a deterministic observation receipt
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
@@ -113,6 +115,7 @@ import forecast
 import graft
 import horizon
 import immunity
+import organism
 import json
 import os
 import re
@@ -144,6 +147,7 @@ IMMUNE_PACKS = HERE / "immune"
 FORECASTS = HERE / "forecasts.jsonl"
 FORECAST_PACKS = HERE / "forecasts"
 GRAFTS = HERE / "grafts"
+ORGANISM = HERE / "organism.jsonl"
 SUITE_TIMEOUT_S = 900
 
 
@@ -214,12 +218,26 @@ def _run(cmd: str, cwd: str, timeout: int = 60):
     # version-controlled, agent-authored). No user/network input ever reaches
     # this function. The shell is what resolves npm.cmd-style shims on Windows.
     try:
-        p = subprocess.run(cmd, cwd=cwd, shell=True, capture_output=True,
-                           text=True, encoding="utf-8", errors="replace",
-                           timeout=timeout)
-        return p.returncode, (p.stdout or "") + (p.stderr or "")
-    except subprocess.TimeoutExpired:
-        return -1, "(timeout)"
+        # `subprocess.run(..., shell=True, timeout=...)` kills cmd.exe but, on
+        # Windows, can leave its Python/Node child holding the inherited output
+        # pipe. communicate() then waits past the alleged deadline. Give each
+        # route a separate process group and kill its entire tree on timeout.
+        flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        p = subprocess.Popen(cmd, cwd=cwd, shell=True, stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, text=True,
+                             encoding="utf-8", errors="replace",
+                             creationflags=flags)
+        try:
+            output, _ = p.communicate(timeout=timeout)
+            return p.returncode, output or ""
+        except subprocess.TimeoutExpired as exc:
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)],
+                           capture_output=True, text=True, errors="replace")
+            output, _ = p.communicate()
+            prior = exc.output or ""
+            if isinstance(prior, bytes):
+                prior = prior.decode("utf-8", errors="replace")
+            return -1, "(timeout)" + (output or prior or "")
     except Exception as e:                      # registry-driven: never crash the digest
         return -2, f"({e})"
 
@@ -727,6 +745,7 @@ def cmd_backup():
         (HERE / "market.jsonl", dest / "station" / "market.jsonl"),
         (HERE / "immunity.jsonl", dest / "station" / "immunity.jsonl"),
         (HERE / "forecasts.jsonl", dest / "station" / "forecasts.jsonl"),
+        (HERE / "organism.jsonl", dest / "station" / "organism.jsonl"),
         (HERE / "shards.jsonl", dest / "station" / "shards.jsonl"),
         (CURSORS / "witness.json", dest / "station" / "witness.json"),
         (Path("E:/atlas-station/CLAIMS.json"), dest / "atlas" / "CLAIMS.json"),
@@ -1553,6 +1572,114 @@ def cmd_graft(args_: list):
         return
     print("usage: station graft [verify <id>|<id>]")
     sys.exit(1)
+
+
+# ---------------------------------------------------------- organism ------
+# A graft proves one small organ can leave its birthplace; this rehearsal proves
+# the named organs can be perceived together. Neither assigns work or grants
+# authority to mutate.
+def _organism_plan(reg: dict) -> list[dict]:
+    """The whole-body roster is source-defined. Do not accept command text
+    from the CLI/ledger: a receipt runner must not become a shell launcher."""
+    return [
+        {"organ": "atlas", "repo": "atlas", "route": "providers-and-continuity",
+         "cmd": "npm run -s test:providers", "timeout": 300},
+        {"organ": "rde", "repo": "rde", "route": "pytest",
+         # Full discovery regression may explore pathological candidates. The
+         # rehearsal treats 30 seconds without a verdict as rot; it must never
+         # monopolize the body's wake window while pretending to be a check.
+         "cmd": "python -m pytest -q", "timeout": 30},
+        {"organ": "boundary", "repo": "boundary", "route": "mission1-pytest",
+         "cwd": "mission1", "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest tests -q", "timeout": 300},
+        {"organ": "ege", "repo": "ege", "route": "pytest",
+         "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest -q", "timeout": 300},
+        {"organ": "director2", "repo": "director2", "route": "pytest",
+         "cmd": "python -m pytest -q", "timeout": 300},
+        {"organ": "demiurge", "repo": "demiurge", "route": "substrate-verify",
+         "cmd": "python driver.py verify", "timeout": 60},
+        {"organ": "station", "repo": "station", "route": "station-suite",
+         "cmd": "python tests_station.py", "timeout": 300},
+        # The mirror checker lives with Station because it compares two bodies;
+        # the snapshot remains Continuity's, so the receipt names both transport
+        # and receiving organ revision.
+        {"organ": "continuity", "repo": "continuity", "route": "mirror-prefix",
+         "cwd": "E:/station", "cmd": "python checks/mirror.py", "timeout": 60},
+    ]
+
+
+def _organism_snapshot(path: Path) -> tuple[str, str]:
+    """Return revision + bounded working-tree fingerprint before a route runs.
+    A dirty tree remains explicitly dirty; it is never upgraded into a
+    reproducible-source claim by a green route."""
+    if not path.is_dir():
+        return "MISSING", "missing"
+    code, head = _run("git rev-parse HEAD", str(path))
+    if code != 0:
+        return "NOGIT", "unavailable"
+    code, status = _run("git status --porcelain", str(path))
+    if code != 0:
+        return head.strip(), "status-unavailable"
+    lines = [line for line in status.splitlines() if line.strip()]
+    if not lines:
+        return head.strip(), "clean"
+    digest = hashlib.sha256(status.encode("utf-8")).hexdigest()[:16]
+    return head.strip(), f"dirty={len(lines)} status-sha256={digest}"
+
+
+def _organism_rows() -> list[dict]:
+    if not ORGANISM.is_file():
+        return []
+    return [json.loads(line) for line in ORGANISM.read_text(
+        encoding="utf-8-sig").splitlines() if line.strip()]
+
+
+def cmd_organism(args_: list[str]):
+    """Run/read a fixed whole-body rehearsal. BODY-OK is an observation
+    receipt only; it authorizes no follow-on work."""
+    if args_ == ["last"] or not args_:
+        rows = _organism_rows()
+        if not rows:
+            print("organism empty | run: station organism run")
+            return
+        print(organism.render(rows[-1]))
+        return
+    if args_ != ["run"]:
+        print("usage: station organism [run|last]")
+        sys.exit(1)
+    reg = _registry()
+    plan = _organism_plan(reg)
+    defects = organism.validate_plan(plan, reg.get("repos", {}))
+    if defects:
+        print("organism refused: " + "; ".join(defects))
+        sys.exit(1)
+    results = []
+    for spec in plan:
+        repo = Path(reg["repos"][spec["repo"]])
+        head, state = _organism_snapshot(repo)
+        cwd_spec = spec.get("cwd")
+        cwd_path = Path(cwd_spec) if cwd_spec else repo
+        if cwd_spec and not cwd_path.is_absolute():
+            cwd_path = repo / cwd_path
+        cwd = str(cwd_path)
+        start = time.monotonic()
+        if head in ("MISSING", "NOGIT"):
+            exit_code, output = -404, f"repository {head.lower()}; route not run"
+        else:
+            exit_code, output = _run(spec["cmd"], cwd, timeout=spec["timeout"])
+        seconds = round(time.monotonic() - start, 3)
+        results.append({
+            "organ": spec["organ"], "status": "OK" if exit_code == 0 else "ROT",
+            "route": spec["route"], "head": head, "state": state,
+            "exit": exit_code, "seconds": seconds, "tail": output.strip()[-500:],
+        })
+    receipt = organism.report(_now(), results)
+    _append_line(ORGANISM, json.dumps(receipt, separators=(",", ":")) + "\n")
+    _spine_append("organism", {"verdict": receipt["verdict"],
+                                "passed": receipt["passed"],
+                                "total": receipt["total"]})
+    print(organism.render(receipt))
+    if receipt["verdict"] != "BODY-OK":
+        sys.exit(1)
 
 
 def cmd_rescue(repo: str):
@@ -2757,6 +2884,8 @@ def main():
         cmd_horizon(args[1:])
     elif cmd == "graft":
         cmd_graft(args[1:])
+    elif cmd == "organism":
+        cmd_organism(args[1:])
     elif cmd == "lease":
         cmd_lease(args[1:])
     elif cmd == "rescue":
