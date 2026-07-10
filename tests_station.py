@@ -581,6 +581,37 @@ class OrganismTests(unittest.TestCase):
         self.assertEqual(receipt["results"][5]["status"], "ROT")
 
 
+class SutureTests(unittest.TestCase):
+    """Context must travel as exact bytes or fail, never as an unmarked gloss."""
+
+    def test_payload_is_exact_and_donor_drift_stays_visible(self):
+        root = Path(tempfile.mkdtemp())
+        source = root / "state.txt"
+        original = b"prefix\r\nload-bearing context\r\n"
+        source.write_bytes(original)
+        manifest = {"id": "context-slice", "purpose": "portable exact context",
+                    "slices": [{"source": str(source), "start": 8,
+                                "end": len(original), "dest": "state.txt"}]}
+        pack = station.suture.seal(manifest, [root], "2030-01-01T00:00:00Z")
+        self.assertEqual(station.suture.verify(pack)["status"], "SUTURE-OK")
+        self.assertEqual(__import__("base64").b64decode(pack["slices"][0]["b64"]),
+                         original[8:])
+        source.write_bytes(b"prefix\r\nchanged donor\r\n")
+        self.assertEqual(station.suture.verify(pack)["status"], "SUTURE-SOURCE-DRIFT")
+        pack["slices"][0]["b64"] = "AAAA"
+        self.assertEqual(station.suture.verify(pack)["status"], "SUTURE-ROT")
+
+    def test_manifest_refuses_context_outside_registered_roots(self):
+        root, outside = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        source = outside / "outside.txt"
+        source.write_text("x", encoding="utf-8")
+        manifest = {"id": "outside-context", "purpose": "must not read broadly",
+                    "slices": [{"source": str(source), "start": 0, "end": 1,
+                                "dest": "outside.txt"}]}
+        with self.assertRaises(ValueError):
+            station.suture.seal(manifest, [root], "2030-01-01T00:00:00Z")
+
+
 class OrganTests(unittest.TestCase):
     """station organs (spiral turn 51): the ledger read as a registry."""
 

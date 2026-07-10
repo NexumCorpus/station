@@ -74,6 +74,9 @@ COMMANDS (write safely — ALL ledger appends are msvcrt-locked, torn-free):
   organism [run|last]       fixed eight-organ body rehearsal: execute only
                            reviewed local routes, append a receipt containing
                            heads/state/timing/tails; BODY-OK authorizes nothing
+  suture [seal|verify|<id>] passive context transport: immutable exact byte
+                           slices from registered roots; ROT=payload loss,
+                           SOURCE-DRIFT=historical bytes no longer current
   cure "<fragment>"        grimoire lookup FIRST on any error
   pin <file>               mint [[pin:path@sha16]] for load-bearing pointers
 
@@ -96,6 +99,7 @@ FILES: spine.jsonl (events), burn-ledger.jsonl (SS15 counter), spiral.jsonl,
   immunity.jsonl (counterfactual lesion/outcome receipts; KILLED is local only),
   forecasts.jsonl (future commitments/resolutions/reviews; score is not calibration)
   organism.jsonl (fixed whole-body rehearsal receipts; BODY-OK is observation only),
+  sutures/ (immutable exact context payloads; narrow slices, not an estate copy),
   (turn ledger), errata.jsonl, grimoire.jsonl, drift.jsonl, cursors/,
   THINKING/ (open reasoning ledgers), plays/, templates/, checks/.
 DESIGN: stigmergy, cursors (never pay twice), one spine, dense wire.

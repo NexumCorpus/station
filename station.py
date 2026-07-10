@@ -51,6 +51,8 @@ Commands:
                             transplant in an empty temporary local body
   station organism [run|last]  fixed whole-body rehearsal across all named
                             organs; append a deterministic observation receipt
+  station suture [seal|verify|<id>]  preserve exact declared context byte
+                            slices; verify payload and donor drift, never execute
   station errata [add ...]  self-error ledger: the agent's own misread/failure
                             distribution (grimoire = world's lessons; errata =
                             mine). Reflex: caught in a correction -> add it
@@ -116,6 +118,7 @@ import graft
 import horizon
 import immunity
 import organism
+import suture
 import json
 import os
 import re
@@ -148,6 +151,7 @@ FORECASTS = HERE / "forecasts.jsonl"
 FORECAST_PACKS = HERE / "forecasts"
 GRAFTS = HERE / "grafts"
 ORGANISM = HERE / "organism.jsonl"
+SUTURES = HERE / "sutures"
 SUITE_TIMEOUT_S = 900
 
 
@@ -746,6 +750,7 @@ def cmd_backup():
         (HERE / "immunity.jsonl", dest / "station" / "immunity.jsonl"),
         (HERE / "forecasts.jsonl", dest / "station" / "forecasts.jsonl"),
         (HERE / "organism.jsonl", dest / "station" / "organism.jsonl"),
+        (SUTURES, dest / "station" / "sutures"),
         (HERE / "shards.jsonl", dest / "station" / "shards.jsonl"),
         (CURSORS / "witness.json", dest / "station" / "witness.json"),
         (Path("E:/atlas-station/CLAIMS.json"), dest / "atlas" / "CLAIMS.json"),
@@ -1679,6 +1684,78 @@ def cmd_organism(args_: list[str]):
                                 "total": receipt["total"]})
     print(organism.render(receipt))
     if receipt["verdict"] != "BODY-OK":
+        sys.exit(1)
+
+
+# ------------------------------------------------------------ suture ------
+# A suture is passive, exact context: it can carry bytes across an instar but
+# cannot run them. This keeps memory transport separate from capability use.
+def _suture_packs() -> dict[str, Path]:
+    packs = {}
+    if not SUTURES.is_dir():
+        return packs
+    for path in sorted(SUTURES.glob("*.json")):
+        try:
+            pack = json.loads(path.read_text(encoding="utf-8-sig"))
+            ident = str(pack.get("id", ""))
+            if ident and ident not in packs:
+                packs[ident] = path
+        except (OSError, json.JSONDecodeError):
+            print(f"SUTURE-ROT unreadable {path.name}")
+    return packs
+
+
+def cmd_suture(args_: list[str]):
+    """Seal/read exact passive-context slices. Suture payloads are immutable;
+    a new reading is a new id, never a rewrite of old remembered bytes."""
+    packs = _suture_packs()
+    if not args_ or args_ == ["list"]:
+        if not packs:
+            print("suture empty | seal one with: station suture seal < manifest.json")
+            return
+        for ident, path in packs.items():
+            pack = json.loads(path.read_text(encoding="utf-8-sig"))
+            print(suture.render(pack, suture.verify(pack)))
+        return
+    if args_ == ["seal"]:
+        try:
+            manifest = json.load(sys.stdin)
+            roots = [Path(value) for value in _registry().get("repos", {}).values()]
+            pack = suture.seal(manifest, roots, _now())
+        except (ValueError, OSError, json.JSONDecodeError) as exc:
+            print(f"suture seal refused: {exc}")
+            sys.exit(1)
+        ident = pack["id"]
+        path = SUTURES / f"{ident}.json"
+        if path.exists():
+            print(f"suture seal refused: immutable id already exists: {ident}")
+            sys.exit(1)
+        if not _lease_acquire("suture-" + ident, 60):
+            print("suture seal refused: another writer holds this id")
+            sys.exit(1)
+        try:
+            if path.exists():
+                print(f"suture seal refused: immutable id already exists: {ident}")
+                sys.exit(1)
+            SUTURES.mkdir(parents=True, exist_ok=True)
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(pack, indent=1) + "\n", encoding="utf-8")
+            os.replace(tmp, path)
+        finally:
+            _lease_release("suture-" + ident)
+        result = suture.verify(pack)
+        _spine_append("suture-seal", {"id": ident, "slices": len(pack["slices"]),
+                                       "bytes": result.get("bytes", 0)})
+        print(suture.render(pack, result))
+        return
+    ident = args_[1] if len(args_) == 2 and args_[0] == "verify" else args_[0]
+    if ident not in packs:
+        print(f"usage: station suture [seal|verify <id>|list|<id>]; known: {', '.join(packs)}")
+        sys.exit(1)
+    pack = json.loads(packs[ident].read_text(encoding="utf-8-sig"))
+    result = suture.verify(pack)
+    print(suture.render(pack, result))
+    if result["status"] != "SUTURE-OK":
         sys.exit(1)
 
 
@@ -2886,6 +2963,8 @@ def main():
         cmd_graft(args[1:])
     elif cmd == "organism":
         cmd_organism(args[1:])
+    elif cmd == "suture":
+        cmd_suture(args[1:])
     elif cmd == "lease":
         cmd_lease(args[1:])
     elif cmd == "rescue":

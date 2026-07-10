@@ -572,6 +572,29 @@ drift unnoticed, the check imports the donor estate, or a graft is described as
 full-system portability/security/independent validation, the transplant is
 theater and must be removed.
 
+**Turns 124-130: context became a suture rather than a recollection.** A graft
+proves an executable capability can survive a stripped body; it is too strong
+and too dangerous for ordinary working context. The missing form was passive
+transport: a successor needs exact selected bytes without being asked to trust a
+summary, reload a whole estate, or accidentally receive execution authority.
+`station suture` seals an immutable packet of declared byte intervals. Every
+interval carries source path and offsets, source hash, slice hash, destination
+label, and the exact payload bytes. Sources are confined to registered estate
+roots, ids cannot be silently rewritten, and the pack contains no command.
+
+Verification makes three states non-negotiable. `SUTURE-OK` means payload and
+donor interval still agree. `SUTURE-SOURCE-DRIFT` means the historical payload
+is byte-perfect but cannot be presented as current. `SUTURE-ROT` means the
+stored bytes themselves no longer hash, which is worse than donor movement.
+The first live suture carries the exact 3,393-byte organism-receipt schema: a
+cold body can acquire the syntax for interpreting a whole-body receipt without
+loading the organism's entire history. The codeword/mirror retain the wider
+estate; a suture is an opening in that body, not its compressed replacement.
+*Kill:* if a payload byte changes undetected, a source escapes a registered
+root, an old id is rewritten, donor drift reads as current, or the passive pack
+is treated as authority to execute, the suture is just an unmarked summary and
+must be removed.
+
 ## 17. The meta — architecture and science are one motion (2026-07-05)
 
 Read §1-16 as one claim and step up once more. The estate runs two arcs built
