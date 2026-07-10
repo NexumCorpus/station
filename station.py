@@ -1213,9 +1213,10 @@ def _immune_show(ident: str, row: dict):
 def cmd_immune(args_: list):
     """Arm/list pre-registered counterfactual lesions.
 
-    `arm` takes one JSON trial from stdin. Execution, verification, and reports
-    are deliberately added as separate verbs: a trial record by itself is not
-    evidence that any checker felt the wound.
+    `arm` takes one JSON trial from stdin. `run` copies the registered suite
+    root, runs its baseline, applies the one declared wound, and records whether
+    the same suite killed it. A trial record by itself is not evidence that any
+    checker felt the wound.
     """
     rows = _fold_immunity()
     if not args_:
@@ -1241,10 +1242,32 @@ def cmd_immune(args_: list):
                                       "target": entry["target"]})
         print(f"[immune] armed {entry['id']} | suite={entry['suite']} | target={entry['target']}")
         return
+    if args_[0] == "run":
+        if len(args_) != 2 or args_[1] not in rows:
+            print(f"usage: station immune run <id>; known: {', '.join(rows)}")
+            sys.exit(1)
+        ident, trial = args_[1], rows[args_[1]]["trial"]
+        try:
+            outcome = immunity.run_trial(trial, immunity.suite_index(_registry()))
+        except ValueError as exc:
+            print(f"immune run refused: {exc}")
+            sys.exit(1)
+        entry = {"kind": "outcome", "id": ident, **outcome,
+                 "t": _now(), "by": _immune_actor()}
+        _append_line(IMMUNITY, json.dumps(entry) + "\n")
+        _spine_append("immune-run", {"id": ident, "status": entry["status"],
+                                      "baseline": entry["baseline"]["exit"],
+                                      "mutant": entry["mutant"]["exit"]})
+        print(f"[immune] {ident} -> {entry['status']} | "
+              f"baseline={entry['baseline']['exit']} mutant={entry['mutant']['exit']} "
+              f"source={entry['source_sha']}")
+        if entry["status"] != "KILLED":
+            sys.exit(1)   # a surviving wound is useful bad news, never PASS
+        return
     if args_[0] in rows:
         _immune_show(args_[0], rows[args_[0]])
         return
-    print("usage: station immune [arm|<id>]  (run/verify/report land after runner is installed)")
+    print("usage: station immune [arm|run <id>|<id>]  (verify/report land after receipt checks are installed)")
     sys.exit(1)
 
 

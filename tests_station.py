@@ -307,6 +307,58 @@ class MarketTests(unittest.TestCase):
         self.assertIn("does not claim customer demand", body)
 
 
+class ImmunityTests(unittest.TestCase):
+    """A test earns protection only by rejecting its declared nearby wound."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.root = self.tmp / "specimen"
+        self.root.mkdir()
+        (self.root / "subject.py").write_text("VALUE = 7\n", encoding="utf-8")
+        (self.root / "check.py").write_text(
+            "import subject\nassert subject.VALUE == 7\n", encoding="utf-8")
+        self._immune, self._spine, self._registry = (station.IMMUNITY,
+                                                       station.SPINE,
+                                                       station._registry)
+        station.IMMUNITY = self.tmp / "immunity.jsonl"
+        station.SPINE = self.tmp / "spine.jsonl"
+        station._registry = lambda: {"suites": [{
+            "name": "specimen", "cwd": str(self.root),
+            "cmd": f'"{sys.executable}" check.py',
+        }]}
+
+    def tearDown(self):
+        station.IMMUNITY, station.SPINE, station._registry = (self._immune,
+                                                                self._spine,
+                                                                self._registry)
+
+    def _trial(self):
+        return {"id": "value-guard", "suite": "specimen", "target": "subject.py",
+                "find": "VALUE = 7", "replace": "VALUE = 0",
+                "reason": "The checker must distinguish the guarded value.",
+                "kill": "The mutant exits zero or the live source changes."}
+
+    def _arm(self):
+        import io
+        old_stdin = sys.stdin
+        sys.stdin = io.StringIO(json.dumps(self._trial()))
+        try:
+            station.cmd_immune(["arm"])
+        finally:
+            sys.stdin = old_stdin
+
+    def test_disposable_lesion_is_killed_without_touching_live_source(self):
+        self._arm()
+        station.cmd_immune(["run", "value-guard"])
+        row = station._fold_immunity()["value-guard"]
+        self.assertEqual(row["outcome"]["status"], "KILLED")
+        self.assertEqual((self.root / "subject.py").read_text(encoding="utf-8"),
+                         "VALUE = 7\n")
+        events = [json.loads(line) for line in
+                  station.SPINE.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(events[-1]["kind"], "immune-run")
+
+
 class OrganTests(unittest.TestCase):
     """station organs (spiral turn 51): the ledger read as a registry."""
 
