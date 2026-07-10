@@ -10,8 +10,8 @@ Status: **KILLED**
 - Replace: `if False:`
 
 ## Replay receipt
-- Original sha256: `39b640a4c6064d2e`
-- Mutant sha256: `00c2b23cdc161d09`
+- Original sha256: `5a3ee1de5e889b5e`
+- Mutant sha256: `c342c29d4bf6106a`
 - Baseline exit: `0`
 - Mutant exit: `1`
 
