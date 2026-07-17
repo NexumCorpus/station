@@ -27,6 +27,11 @@
    "cmd": "npm run -s test:wing:felt"
   },
   {
+   "name": "rde-health",
+   "cwd": "E:/recursive-discovery-engine",
+   "cmd": "python -m rde.health"
+  },
+  {
    "name": "atlas-grader",
    "cwd": "E:/atlas-station",
    "cmd": "npm run -s test:grader"
@@ -34,12 +39,12 @@
   {
    "name": "ege",
    "cwd": "E:/emergent-geometry-engine",
-   "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest -q"
+   "cmd": ".venv\\Scripts\\python.exe -m pytest -q"
   },
   {
    "name": "boundary",
    "cwd": "E:/boundary/mission1",
-   "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest tests -q"
+   "cmd": "python -m pytest tests -q"
   },
   {
    "name": "station",

@@ -9,3 +9,13 @@
 {"t": "2026-07-04T18:19:54Z", "model": "hermes3:8b", "in_b": 6289, "out_b": 1990}
 {"t": "2026-07-04T20:25:30Z", "model": "hermes3:8b", "in_b": 6291, "out_b": 776}
 {"t": "2026-07-04T23:23:52Z", "model": "qwen2.5-coder:7b", "in_b": 32, "out_b": 12}
+{"t": "2026-07-05T01:08:30Z", "model": "qwen2.5-coder:7b", "in_b": 32, "out_b": 12}
+{"t": "2026-07-05T02:13:16Z", "model": "hermes3:8b", "in_b": 8286, "out_b": 828}
+{"t": "2026-07-05T10:34:23Z", "model": "hermes3:8b", "in_b": 10671, "out_b": 2032}
+{"t": "2026-07-05T10:35:24Z", "model": "qwen2.5-coder:7b", "in_b": 28, "out_b": 8}
+{"t": "2026-07-05T10:36:12Z", "model": "qwen2.5-coder:7b", "in_b": 879, "out_b": 14}
+{"t": "2026-07-09T22:20:10Z", "model": "hermes3:8b", "in_b": 28036, "out_b": 558}
+{"t": "2026-07-10T01:18:05Z", "model": "hermes3:8b", "in_b": 6632, "out_b": 448}
+{"t": "2026-07-10T01:18:30Z", "model": "hermes3:8b", "in_b": 3270, "out_b": 489}
+{"t": "2026-07-10T04:17:30Z", "model": "hermes3:8b", "in_b": 6642, "out_b": 447}
+{"t": "2026-07-10T11:47:44Z", "model": "qwen2.5-coder:7b", "in_b": 217, "out_b": 77}

@@ -1591,15 +1591,16 @@ def _organism_plan(reg: dict) -> list[dict]:
     return [
         {"organ": "atlas", "repo": "atlas", "route": "providers-and-continuity",
          "cmd": "npm run -s test:providers", "timeout": 300},
-        {"organ": "rde", "repo": "rde", "route": "pytest",
-         # Full discovery regression may explore pathological candidates. The
-         # rehearsal treats 30 seconds without a verdict as rot; it must never
-         # monopolize the body's wake window while pretending to be a check.
-         "cmd": "python -m pytest -q", "timeout": 30},
+        {"organ": "rde", "repo": "rde", "route": "structural-health",
+         # The full regression intentionally contains search campaigns and
+         # wall-clock comparisons. The product health command runs a real
+         # grounded discovery cycle and checks structural outcomes without
+         # promoting machine-load noise into body rot.
+         "cmd": "python -m rde.health", "timeout": 60},
         {"organ": "boundary", "repo": "boundary", "route": "mission1-pytest",
-         "cwd": "mission1", "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest tests -q", "timeout": 300},
+         "cwd": "mission1", "cmd": "python -m pytest tests -q", "timeout": 300},
         {"organ": "ege", "repo": "ege", "route": "pytest",
-         "cmd": "E:\\_phase0_test_venv\\Scripts\\python.exe -m pytest -q", "timeout": 300},
+         "cmd": ".venv\\Scripts\\python.exe -m pytest -q", "timeout": 300},
         {"organ": "director2", "repo": "director2", "route": "pytest",
          "cmd": "python -m pytest -q", "timeout": 300},
         {"organ": "demiurge", "repo": "demiurge", "route": "substrate-verify",
