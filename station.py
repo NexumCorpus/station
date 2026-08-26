@@ -2365,10 +2365,20 @@ def cmd_recover(args):
         return
     k, n, olen = rows[0]["k"], rows[0]["n"], rows[0]["orig_len"]
     frags = {s["i"]: base64.b64decode(s["frag_b64"]) for s in rows}
+    sums = {s["i"]: s["frag_sha16"] for s in rows if s.get("frag_sha16")}
     if len(frags) < k:
         print(f"BELOW-K pin={pin}: {len(frags)}/{k} fragments survive")
         return
-    rec = decode(frags, k, n, olen)
+    from shard_rs import frag_digest
+    verified = {i: f for i, f in frags.items()
+                if not sums or frag_digest(f)[:16] == sums.get(i)}
+    bad = sorted(set(frags) - set(verified))
+    if bad:
+        print(f"note pin={pin}: fragment(s) {bad} fail sidecar digest, routing around")
+    if len(verified) < k:
+        print(f"BELOW-K-VERIFIED pin={pin}: <k fragments pass sidecar digest")
+        return
+    rec = decode(verified, k, n, olen)
     if rec is None:
         print(f"BELOW-K pin={pin}: decode failed")
         return

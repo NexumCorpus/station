@@ -45,6 +45,12 @@ def ginv(a: int) -> int:
     return _EXP[255 - _LOG[a]]
 
 
+def frag_digest(frag: bytes) -> str:
+    """Sidecar per-fragment integrity digest (MinIO-style bitrot hash). SHA-256 hex; stdlib-only. Stored alongside the fragment, never inside it."""
+    import hashlib
+    return hashlib.sha256(frag).hexdigest()
+
+
 # --- systematic Cauchy generator: rows 0..k-1 = identity, k..n-1 = Cauchy -----
 def _gen_matrix(k: int, n: int):
     if n > 256:
@@ -100,8 +106,16 @@ def encode(data: bytes, k: int, n: int):
     return frags, len(data)
 
 
-def decode(frags: dict, k: int, n: int, orig_len: int):
-    """Reconstitute from {index: fragment_bytes}; need >=k. None if impossible."""
+def decode(frags: dict, k: int, n: int, orig_len: int, checksums: dict | None = None):
+    """Reconstitute from {index: fragment_bytes}; need >=k verified fragments.
+
+    If checksums ({index: hexdigest}) is given, fragments failing their sidecar
+    digest are rejected BEFORE matrix inversion - corruption is localized
+    and routed around instead of silently poisoning reconstruction.
+    Returns None if fewer than k verified fragments survive.
+    """
+    if checksums:
+        frags = {i: f for i, f in frags.items() if frag_digest(f) == checksums.get(i)}
     idxs = sorted(frags)[:k]
     if len(idxs) < k:
         return None
@@ -142,6 +156,25 @@ def _selftest():
             tested += 1
         # k==n edge (no redundancy) still round-trips with 0 losses
         print(f"  k={k} n={n}: {tested} erasure patterns reconstituted byte-exact, pin={pin}")
+    # per-shard checksum routing: corrupt one fragment, verify decode routes around it
+    import random
+    data2 = bytes(random.randrange(256) for _ in range(2000))
+    frags2, olen2 = encode(data2, 4, 6)
+    sums = {i: frag_digest(f) for i, f in enumerate(frags2)}
+    bad = {i: f for i, f in enumerate(frags2)}; bad[1] = bytes([bad[1][0] ^ 1]) + bad[1][1:]
+    surv = {i: bad[i] for i in range(6) if i != 5}
+    guarded = decode(surv, 4, 6, olen2, sums)
+    if guarded != data2:
+        print(f"FAIL checksum-routing guarded={guarded is not None}"); ok = False
+    else:
+        print("  checksum-routing: corrupted frag detected and routed around, byte-exact recovery")
+    # starve verification: corrupt 3 of 6 -> only 3 verified < k=4 -> must return None
+    for j in (0, 2, 5):
+        bad[j] = bytes([bad[j][0] ^ 1]) + bad[j][1:]
+    if decode(bad, 4, 6, olen2, sums) is not None:
+        print("FAIL too-few-verified should return None"); ok = False
+    else:
+        print("  too-few-verified: 3 corruptions leave <k verified, decode refuses")
     print("SELFTEST-OK erasure coding reconstitutes byte-exact under all tested losses"
           if ok else "SELFTEST-FAIL")
     return ok
