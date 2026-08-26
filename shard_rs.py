@@ -115,7 +115,9 @@ def decode(frags: dict, k: int, n: int, orig_len: int, checksums: dict | None = 
     Returns None if fewer than k verified fragments survive.
     """
     if checksums:
-        frags = {i: f for i, f in frags.items() if frag_digest(f) == checksums.get(i)}
+        # sidecar digests may be truncated (e.g. 16-hex frag_sha16); compare prefix-wise
+        frags = {i: f for i, f in frags.items()
+                 if (c := checksums.get(i)) and frag_digest(f).startswith(c)}
     idxs = sorted(frags)[:k]
     if len(idxs) < k:
         return None

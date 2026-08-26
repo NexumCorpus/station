@@ -2371,7 +2371,7 @@ def cmd_recover(args):
         return
     from shard_rs import frag_digest
     verified = {i: f for i, f in frags.items()
-                if not sums or frag_digest(f)[:16] == sums.get(i)}
+                if not sums or frag_digest(f).startswith(sums.get(i) or '')}
     bad = sorted(set(frags) - set(verified))
     if bad:
         print(f"note pin={pin}: fragment(s) {bad} fail sidecar digest, routing around")
