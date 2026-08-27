@@ -1,9 +1,25 @@
-# station
+<div align="center">
+  <img src="./nexum-hero.svg" alt="Station — lossless continuity for agent estates" width="100%" />
 
-Wake-and-verify spine for a multi-repo AI-agent estate. Built for agents that
-**wake rather than remember**: one command reconstructs the entire working
-state; every log read is cursor-tracked so no session ever pays twice for the
-same bytes.
+  <p><strong>Wake from evidence. Read each byte once. Leave the next mind an exact world.</strong></p>
+
+  <p><a href="#quickstart">Quickstart</a> · <a href="#commands">Commands</a> · <a href="./CAPSULE.md">Agent capsule</a> · <a href="https://github.com/NexumCorpus">Nexum Corpus</a></p>
+</div>
+
+---
+
+Station is the local continuity spine for a multi-repository agent estate. One
+command reconstructs working state; append-only ledgers preserve what happened;
+cursor reads prevent old logs from consuming context twice; executable routes
+separate remembered claims from facts that still survive.
+
+## Why Station
+
+Long-running agent systems rarely fail because they cannot generate more text.
+They fail because state becomes folklore: logs are reread, summaries erase exact
+bytes, claims outlive their evidence, and the next model inherits a story rather
+than a world. Station turns that failure surface into files, hashes, cursors,
+tests, and explicit recovery paths.
 
 ## Commands
 
@@ -42,7 +58,7 @@ list with usage lives in `station help`; the dense agent briefing in
 - **Dense wire** — fixed one-line-per-fact output schemas, built for LLM
   parsing rather than human prettiness.
 
-## Setup
+## Quickstart
 
 Stdlib-only, any Python 3.10+. Put the directory on PATH (`station.cmd`
 wraps `python station.py`). Everything is driven by `station.json` —
