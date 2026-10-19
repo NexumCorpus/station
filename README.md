@@ -60,10 +60,21 @@ list with usage lives in `station help`; the dense agent briefing in
 
 ## Quickstart
 
-Stdlib-only, any Python 3.10+. Put the directory on PATH (`station.cmd`
-wraps `python station.py`). Everything is driven by `station.json` —
-repos, suites, logs — which sits in the same trust domain as the code
-(the shell=True in the runner is deliberate and bounded to that file).
+Stdlib-only, Python 3.10+, Windows (the runner shells out through `cmd /c`). Put the directory on PATH
+(`station.cmd` wraps `python station.py`).
+
+```text
+git clone https://github.com/NexumCorpus/station && cd station
+python tests_station.py            # 40 hermetic tests, ~4 s, touches nothing outside temp dirs
+python examples/init_local.py      # writes station.local.json: a registry that points at THIS checkout
+python station.py wake             # whole-state digest of that registry
+python station.py suites           # run the registered suites, one PASS/FAIL line each
+```
+
+`station.json` is the author's own estate registry (repos, suites and logs under `E:/`); it is kept as a worked
+example of a real registry. `station.py` prefers `station.local.json` when it exists, and `STATION_REGISTRY=<path>`
+overrides both, so a stranger never has to edit tracked files. All ledgers are written next to `station.py`.
+Registry commands run with `shell=True` by design; the registry sits in the same trust domain as the code.
 
 ## Provenance
 

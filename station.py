@@ -139,7 +139,8 @@ if hasattr(sys.stdin, "reconfigure"):
     sys.stdin.reconfigure(encoding="utf-8-sig")
 
 HERE = Path(__file__).resolve().parent
-REG = HERE / "station.json"
+# station.local.json (see examples/init_local.py) wins over the author estate's station.json; STATION_REGISTRY wins over both.
+REG = Path(os.environ["STATION_REGISTRY"]) if os.environ.get("STATION_REGISTRY") else (HERE / "station.local.json" if (HERE / "station.local.json").exists() else HERE / "station.json")
 SPINE = HERE / "spine.jsonl"
 CURSORS = HERE / "cursors"
 WILL = HERE / "WILL.md"

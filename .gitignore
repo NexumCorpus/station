@@ -11,3 +11,4 @@ __pycache__/
 *.key
 *.pfx
 *.p12
+station.local.json
