@@ -199,7 +199,7 @@ class StationTests(unittest.TestCase):
         import subprocess
         wf = self.tmp / "w.py"
         wf.write_text(
-            "import sys; sys.path.insert(0, r'E:\\station')\n"
+            f"import sys; sys.path.insert(0, {str(Path(station.__file__).resolve().parent)!r})\n"
             "import station\nfrom pathlib import Path\n"
             "station.SPINE = Path(sys.argv[1])\n"
             "for i in range(50):\n"

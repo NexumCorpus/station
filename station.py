@@ -2847,7 +2847,7 @@ def cmd_regs():
 
 
 # ------------------------------------------------------------- organs ------
-_ORGAN_PATH_RE = re.compile(r"[A-Za-z]:[\\/][\w\\/.\-]+")
+_ORGAN_PATH_RE = re.compile(r"[A-Za-z]:[\\/][\w\\/.~\-]+")
 
 
 def _organ_refs(built: str, verbs: set[str]) -> tuple[list[str], list[str]]:
