@@ -6,8 +6,10 @@ import json
 import pathlib
 import time
 
+ROOT = pathlib.Path(__file__).resolve().parent.parent  # this checkout
+
 last = None
-for ln in pathlib.Path("E:/station/spine.jsonl").read_text(
+for ln in (ROOT / "spine.jsonl").read_text(
         encoding="utf-8").splitlines():
     try:
         r = json.loads(ln)

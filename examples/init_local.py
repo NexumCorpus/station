@@ -4,6 +4,7 @@ station.json is the author's estate (E:/ paths); station.py prefers station.loca
 so a fresh clone can run `wake`, `suites` and `log` against itself without touching any other path.
 """
 import json
+import sys
 from pathlib import Path
 
 here = Path(__file__).resolve().parent.parent
@@ -11,7 +12,7 @@ root = here.as_posix()
 reg = {
     "repos": {"station": root},
     "claims": f"{root}/CLAIMS.json",
-    "suites": [{"name": "station-selftest", "cwd": root, "cmd": "python tests_station.py"}],
+    "suites": [{"name": "station-selftest", "cwd": root, "cmd": f'"{sys.executable}" tests_station.py'}],
     "witness": [f"{root}/spine.jsonl"],
     "logs": {"spine": f"{root}/spine.jsonl"},
 }

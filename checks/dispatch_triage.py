@@ -8,7 +8,9 @@ instead of passing quietly."""
 import sys
 from pathlib import Path
 
-PLAY = Path("E:/station/plays/dispatch-triage.md")
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
+PLAY = (ROOT / "plays/dispatch-triage.md")
 # Load-bearing markers (ASCII-only, to survive the encoding joint): the
 # operative test, the two-sided razor's judgment pole, the inline pole, and
 # the paid receipt that anchors the whole thing.

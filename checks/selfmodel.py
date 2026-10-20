@@ -9,9 +9,11 @@ import re
 import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
 LAG = 12  # turns the constitution may trail before it counts as rotted
 
-doc = Path("E:/station/ALIEN-ARCHITECTURE.md").read_text(encoding="utf-8")
+doc = (ROOT / "ALIEN-ARCHITECTURE.md").read_text(encoding="utf-8")
 m = re.search(r"through turn (\d+)", doc)
 if not m:
     print("NO-SELFMODEL-MARKER: §16 lost its 'through turn N' anchor")
@@ -19,7 +21,7 @@ if not m:
 claimed = int(m.group(1))
 
 turns = [json.loads(ln)["turn"] for ln in
-         Path("E:/station/spiral.jsonl").read_text(encoding="utf-8-sig")
+         (ROOT / "spiral.jsonl").read_text(encoding="utf-8-sig")
          .splitlines() if ln.strip() and '"turn"' in ln]
 newest = max(turns) if turns else 0
 

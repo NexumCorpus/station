@@ -8,7 +8,9 @@ import re
 import sys
 from pathlib import Path
 
-REG = json.loads(Path("E:/station/station.json").read_text(encoding="utf-8-sig"))
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
+REG = json.loads((ROOT / "station.json").read_text(encoding="utf-8-sig"))
 PIN = re.compile(r"\[\[pin:([^@\]]+)@([0-9a-f]{16})\]\]")
 
 # the journal (auto-memory) carries the most rot-prone pointers of all:

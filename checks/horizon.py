@@ -7,7 +7,9 @@ authority, and next route, so aggregation never turns into unauthorized agency.
 import sys
 from pathlib import Path
 
-HERE = Path("E:/station")
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
+HERE = ROOT
 sys.path.insert(0, str(HERE))
 import horizon  # noqa: E402
 import station  # noqa: E402

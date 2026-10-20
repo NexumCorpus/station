@@ -13,7 +13,9 @@ import re
 import sys
 from pathlib import Path
 
-ROOTS = Path("E:/station/ROOTS.md")
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
+ROOTS = (ROOT / "ROOTS.md")
 if not ROOTS.is_file():
     print("NO-ROOTS-MANIFEST: ROOTS.md is gone — the trust floor is unnamed")
     sys.exit(1)
@@ -29,7 +31,8 @@ if not rows:
 
 bad = []
 for pinned, path in rows:
-    p = Path(path)
+    p = (ROOT / path[len("E:/station/"):]
+         if path.startswith("E:/station/") else Path(path))
     if not p.is_file():
         bad.append(f"{path} MISSING")
         continue

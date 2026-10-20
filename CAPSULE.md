@@ -108,5 +108,6 @@ DESIGN: stigmergy, cursors (never pay twice), one spine, dense wire.
 INVARIANTS: suites unknown-name exits 1; registries read utf-8-sig; ledger
   appends locked (turn 33: plain 'a' lost 1553/4000 under contention);
   witnessed ledgers LF-pinned via .gitattributes.
-PROVENANCE: 7-agent cold audit at founding; suite tests_station.py (13);
+PROVENANCE: 7-agent cold audit at founding (findings list not committed);
+  suite tests_station.py (run it for the current count);
   spiral ledger = the change history with measures.

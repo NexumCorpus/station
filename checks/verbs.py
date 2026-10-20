@@ -6,7 +6,9 @@ import re
 import sys
 from pathlib import Path
 
-src = Path("E:/station/station.py").read_text(encoding="utf-8")
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
+src = (ROOT / "station.py").read_text(encoding="utf-8")
 doc = src.split('"""')[1]                       # module docstring
 verbs = set(re.findall(r'\bcmd == "(\w+)"', src)) | {"wake"}
 missing = sorted(v for v in verbs

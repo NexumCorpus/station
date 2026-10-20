@@ -124,6 +124,7 @@ import suture
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -175,11 +176,14 @@ def _append_line(path: Path, line: str):
     """THE append primitive for shared ledgers. Plain 'a'-mode writes are
     NOT atomic across processes on Windows (turn-33 stress: 20 procs x 200
     appends -> 177 torn + 1553 LOST of 4000). An msvcrt region-lock on
-    byte 0 serializes writers; readers never touch the lock."""
+    byte 0 (flock on POSIX) serializes writers; readers never touch the lock."""
     path.parent.mkdir(exist_ok=True)
     if os.name != "nt":
+        import fcntl
         with path.open("a", encoding="utf-8") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)         # released when f closes
             f.write(line)
+            f.flush()
         return
     import msvcrt
     with path.open("a", encoding="utf-8") as f:
@@ -219,6 +223,18 @@ def _write_cursor(cur: Path, value: int):
     os.replace(tmp, cur)                        # atomic on Windows + POSIX
 
 
+def _kill_tree(p: subprocess.Popen):
+    """Kill a timed-out route and every process it started."""
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)],
+                       capture_output=True, text=True, errors="replace")
+    else:
+        try:
+            os.killpg(p.pid, signal.SIGKILL)
+        except OSError:
+            p.kill()
+
+
 def _run(cmd: str, cwd: str, timeout: int = 60):
     # shell=True is deliberate and bounded: every command string comes from
     # station.json, which sits in the SAME trust domain as this file (local,
@@ -229,17 +245,17 @@ def _run(cmd: str, cwd: str, timeout: int = 60):
         # Windows, can leave its Python/Node child holding the inherited output
         # pipe. communicate() then waits past the alleged deadline. Give each
         # route a separate process group and kill its entire tree on timeout.
-        flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        # POSIX gets the same guarantee through its own session (killpg).
+        group = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+                 if os.name == "nt" else {"start_new_session": True})
         p = subprocess.Popen(cmd, cwd=cwd, shell=True, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, text=True,
-                             encoding="utf-8", errors="replace",
-                             creationflags=flags)
+                             encoding="utf-8", errors="replace", **group)
         try:
             output, _ = p.communicate(timeout=timeout)
             return p.returncode, output or ""
         except subprocess.TimeoutExpired as exc:
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)],
-                           capture_output=True, text=True, errors="replace")
+            _kill_tree(p)
             output, _ = p.communicate()
             prior = exc.output or ""
             if isinstance(prior, bytes):
@@ -250,6 +266,14 @@ def _run(cmd: str, cwd: str, timeout: int = 60):
 
 
 # ---------------------------------------------------------------- wake ------
+def _continuity() -> Path | None:
+    """Offsite mirror root: STATION_CONTINUITY, else the author's E:/continuity.
+    None when that is not an absolute path on a drive that exists, so backup
+    and rescue refuse instead of writing into whatever directory they ran in."""
+    p = Path(os.environ.get("STATION_CONTINUITY") or "E:/continuity")
+    return p if p.is_absolute() and Path(p.anchor).exists() else None
+
+
 def _repo_line(name: str, path: str) -> str:
     if not Path(path).is_dir():
         return f"{name} MISSING({path})"
@@ -275,7 +299,9 @@ def _repo_line(name: str, path: str) -> str:
         # honest alarm grading (turn 39): untracked-with-offsite-snapshot is
         # protected dirt, not at-risk dirt. Freshness matters: a snapshot
         # older than the newest untracked byte is stale protection.
-        zips = sorted(Path("E:/continuity/rescue").glob(f"{name}-*.zip"))
+        cont = _continuity()
+        zips = (sorted((cont / "rescue").glob(f"{name}-*.zip"))
+                if cont else [])
         if zips:
             znew = zips[-1].stat().st_mtime
             newest = 0.0
@@ -454,7 +480,7 @@ def cmd_wake():
     think = sorted(p.stem for p in (HERE / "THINKING").glob("*.md"))
     if think:
         lines.append(f"thinking {len(think)} open: {', '.join(think)}"
-                     " -> E:/station/THINKING/")
+                     " -> THINKING/")
     # armed kill conditions past due: Law II relies on these being SCORED,
     # and scoring relied on memory until turn 43
     try:
@@ -588,8 +614,8 @@ def cmd_suites(only: str | None = None, force: bool = False):
             continue
         t0 = time.time()
         code, out = _run(s["cmd"], s["cwd"], timeout=SUITE_TIMEOUT_S)
-        tail = out.strip().splitlines()[-1][:120] if out.strip() else ""
         verdict = "PASS" if code == 0 else "FAIL"
+        tail = _suite_tail(out, verdict == "FAIL")
         results[s["name"]] = verdict
         if verdict == "PASS":
             cache[s["name"]] = {"key": key, "verdict": "PASS", "tail": tail,
@@ -604,6 +630,24 @@ def cmd_suites(only: str | None = None, force: bool = False):
     _spine_append("suites", {**results, "_cached": cached_n})
     sys.exit(0 if results and all(v == "PASS" for k, v in results.items()
                                   if not k.startswith("_")) else 1)
+
+
+def _suite_tail(out: str, failed: bool) -> str:
+    """One line that says why a suite ended as it did. On FAIL a trailing
+    warning must not hide the cause: prefer the last failure-looking line,
+    else the last line that is not a warning."""
+    lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
+    if not lines:
+        return ""
+    if failed:
+        for ln in reversed(lines):
+            if re.search(r"\b(FAILED|FAIL|ERROR|Error)\b", ln) \
+                    and "Warning" not in ln:
+                return ln[:120]
+    for ln in reversed(lines):
+        if "Warning" not in ln:
+            return ln[:120]
+    return lines[-1][:120]
 
 
 # --------------------------------------------------------------- tally ------
@@ -666,8 +710,14 @@ def cmd_drift():
         if not ln.strip():
             continue
         a = json.loads(ln)
-        code, out = _run(a["cmd"], str(HERE), timeout=120)
-        ok = (a["expect"] in out) if "expect" in a else (code == 0)
+        cmd = a["cmd"]
+        if cmd.startswith("python "):         # stock Ubuntu ships python3 only
+            cmd = f'"{sys.executable}" ' + cmd[len("python "):]
+        code, out = _run(cmd, str(HERE), timeout=120)
+        # exit 0 is required even with an expect fragment: since Python 3.13
+        # a `python -c` traceback repeats the failing source line, which
+        # usually contains the expected token itself
+        ok = code == 0 and (a["expect"] in out if "expect" in a else True)
         tail = out.strip().splitlines()[-1][:100] if out.strip() else f"code={code}"
         print(f"{'ok   ' if ok else 'DRIFT'} {a['claim'][:70]} | {tail}")
         bad += 0 if ok else 1
@@ -733,7 +783,11 @@ def cmd_backup():
     loss. Mirror them into E:\\continuity (git -> private remote if
     configured) in one command."""
     import shutil as sh
-    dest = Path("E:/continuity")
+    dest = _continuity()
+    if dest is None:
+        print("[backup] no continuity directory: set STATION_CONTINUITY to an "
+              "absolute path on an existing drive (default E:/continuity)")
+        sys.exit(1)
     jobs = [
         (Path.home() / ".claude" / "projects" / "E--" / "memory", dest / "journal"),
         (HERE / "spine.jsonl", dest / "station" / "spine.jsonl"),
@@ -1536,7 +1590,9 @@ def cmd_horizon(args_: list):
         print(horizon.render(items))
 
 
-def _graft_manifests() -> dict[str, Path]:
+def _graft_manifests(unreadable: list | None = None) -> dict[str, Path]:
+    """Declared grafts by id; manifests that fail to load are reported
+    (GRAFT-ROT) and, if `unreadable` is given, collected there."""
     manifests = {}
     if not GRAFTS.is_dir():
         return manifests
@@ -1546,23 +1602,28 @@ def _graft_manifests() -> dict[str, Path]:
             manifests[manifest["id"]] = path
         except ValueError as exc:
             print(f"GRAFT-ROT {path}: {exc}")
+            if unreadable is not None:
+                unreadable.append(path)
     return manifests
 
 
 def cmd_graft(args_: list):
     """List/verify xenografts. Verification copies only manifest bytes to a
     fresh temporary body; it never mutates the estate or imports source state."""
-    manifests = _graft_manifests()
+    unreadable: list = []
+    manifests = _graft_manifests(unreadable)
     if not args_:
         if not manifests:
             print("graft empty | add grafts/<id>/manifest.json")
-            return
+            sys.exit(1 if unreadable else 0)
+        rotted = len(unreadable)
         for ident, path in manifests.items():
             manifest = graft.load(path)
             problems = graft.verify_sources(manifest)
+            rotted += bool(problems)
             print(f"{'ROT ' if problems else 'READY'} {ident:<28} files={len(manifest['files'])}"
                   + (" | " + "; ".join(problems) if problems else ""))
-        return
+        sys.exit(1 if rotted else 0)
     if args_[0] == "verify":
         if len(args_) != 2 or args_[1] not in manifests:
             print(f"usage: station graft verify <id>; known: {', '.join(manifests)}")
@@ -1784,7 +1845,15 @@ def cmd_rescue(repo: str):
     if not files:
         print(f"{repo}: no untracked files — nothing to rescue")
         return
-    dest = Path("E:/continuity") / "rescue"
+    cont = _continuity()
+    if cont is None or not (cont / ".git").is_dir():
+        # never git add/commit/push in a directory that is not its own repo:
+        # on a fresh path that would act on whatever checkout encloses it
+        print("[rescue] needs a continuity git repo: set STATION_CONTINUITY "
+              "to an existing git checkout (default E:/continuity); "
+              "nothing was written")
+        sys.exit(1)
+    dest = cont / "rescue"
     dest.mkdir(parents=True, exist_ok=True)
     zp = dest / f"{repo}-{_now()[:10]}.zip"
     n = 0
@@ -1794,14 +1863,15 @@ def cmd_rescue(repo: str):
             if src.is_file():
                 z.write(src, rel)
                 n += 1
-    _run("git add -A", "E:/continuity", 60)
+    _run("git add -A", str(cont), 60)
     _run(f'git commit -m "rescue {repo}: {n} untracked files"',
-         "E:/continuity", 60)
-    _run("git push", "E:/continuity", 300)
+         str(cont), 60)
+    pc, _ = _run("git push", str(cont), 300)
     _spine_append("rescue", {"repo": repo, "files": n, "zip": zp.name,
                              "bytes": zp.stat().st_size})
     print(f"[rescue] {repo}: {n} untracked files -> {zp} "
-          f"({zp.stat().st_size:,}B) committed+pushed")
+          f"({zp.stat().st_size:,}B) committed"
+          + (" +pushed" if pc == 0 else " (push failed or no remote)"))
 
 
 def cmd_molt(next_actions: str = ""):
@@ -1880,7 +1950,11 @@ def cmd_llm(model: str, prompt: str):
     if prompt == "-":
         prompt = sys.stdin.read()
     out = llm(prompt, model=model)
-    print(out if out is not None else "[llm] DOWN or errored (not an answer)")
+    if out is None:
+        print("[llm] DOWN or errored (not an answer); needs a local Ollama "
+              "server at localhost:11434")
+        sys.exit(1)
+    print(out)
 
 
 # ------------------------------------------------------------ hermes ------
@@ -1933,6 +2007,13 @@ def cmd_hermes(args_: list[str]):
 
 
 # ----------------------------------------------------------------- wsl ------
+def _windows_only(verb: str):
+    if os.name != "nt":
+        print(f"[{verb}] Windows-only: it reaches WSL through wsl.exe and "
+              "the wsl$ share; nothing was written")
+        sys.exit(1)
+
+
 def cmd_wsl(user: str, src: str):
     """Run a script in WSL with ZERO inline quoting (spiral turn 2).
 
@@ -1943,6 +2024,7 @@ def cmd_wsl(user: str, src: str):
 
       station wsl [user] <script-file>     run a script file
       station wsl [user] -                 script from stdin"""
+    _windows_only("wsl")
     text = (sys.stdin.read() if src == "-" else
             Path(src).read_text(encoding="utf-8-sig", errors="replace"))
     tmp = Path(r"\\wsl$\Ubuntu\tmp\station_wsl.sh")
@@ -1981,6 +2063,7 @@ def cmd_hand(args_: list):
       station hand "<task>"    drop food (returns immediately)
       station hand take        collect + print new results (archives them)
       station hand status      hatch counts, one line"""
+    _windows_only("hand")
     sub = args_[0] if args_ else ""
     if sub == "status":
         try:
@@ -2691,10 +2774,11 @@ def _run_check(cmd: str, expect: str):
     """Execute a claim's re-derivation route through _run — the estate's one
     audited shell seam (see its trust-domain note; routes are agent-authored
     and land witnessed in the spine, never from user/network input). ok =
-    expect-fragment in output, or exit 0 when no expect is given. A vacuous
-    route is possible but visible forever in the record."""
+    exit 0 AND (when given) the expect fragment in output; a crash that
+    echoes the fragment (a 3.13+ traceback repeats its source line) is not a
+    pass. A vacuous route is possible but visible forever in the record."""
     code, out = _run(cmd, str(HERE), timeout=300)
-    return ((expect in out) if expect else (code == 0)), code, out.strip()
+    return code == 0 and (expect in out if expect else True), code, out.strip()
 
 
 def cmd_say(args_: list):
@@ -2847,7 +2931,11 @@ def cmd_regs():
 
 
 # ------------------------------------------------------------- organs ------
-_ORGAN_PATH_RE = re.compile(r"[A-Za-z]:[\\/][\w\\/.~\-]+")
+# Drive-letter paths everywhere; two-or-more-segment POSIX paths only on POSIX
+# (on Windows prose mentions of /mnt/e/... or /clear are not estate paths).
+_ORGAN_PATH_RE = re.compile(
+    r"[A-Za-z]:[\\/][\w\\/.~\-]+"
+    + ("" if os.name == "nt" else r"|(?<![\w/.:~\-])/(?:[\w.~\-]+/)+[\w.~\-]+"))
 
 
 def _organ_refs(built: str, verbs: set[str]) -> tuple[list[str], list[str]]:

@@ -10,14 +10,16 @@ import json
 import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
 
 def count_lines(p: Path) -> int:
     return (sum(1 for ln in p.read_text(encoding="utf-8-sig").splitlines()
                 if ln.strip()) if p.is_file() else 0)
 
 
-drift_n = count_lines(Path("E:/station/drift.jsonl"))
-reg = json.loads(Path("E:/station/station.json").read_text(encoding="utf-8-sig"))
+drift_n = count_lines((ROOT / "drift.jsonl"))
+reg = json.loads((ROOT / "station.json").read_text(encoding="utf-8-sig"))
 witnessed = len(reg.get("witness", []))
 certified = 0
 claims_p = reg.get("claims", "")
