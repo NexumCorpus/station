@@ -1590,7 +1590,9 @@ def cmd_horizon(args_: list):
         print(horizon.render(items))
 
 
-def _graft_manifests() -> dict[str, Path]:
+def _graft_manifests(unreadable: list | None = None) -> dict[str, Path]:
+    """Declared grafts by id; manifests that fail to load are reported
+    (GRAFT-ROT) and, if `unreadable` is given, collected there."""
     manifests = {}
     if not GRAFTS.is_dir():
         return manifests
@@ -1600,18 +1602,21 @@ def _graft_manifests() -> dict[str, Path]:
             manifests[manifest["id"]] = path
         except ValueError as exc:
             print(f"GRAFT-ROT {path}: {exc}")
+            if unreadable is not None:
+                unreadable.append(path)
     return manifests
 
 
 def cmd_graft(args_: list):
     """List/verify xenografts. Verification copies only manifest bytes to a
     fresh temporary body; it never mutates the estate or imports source state."""
-    manifests = _graft_manifests()
+    unreadable: list = []
+    manifests = _graft_manifests(unreadable)
     if not args_:
         if not manifests:
             print("graft empty | add grafts/<id>/manifest.json")
-            return
-        rotted = 0
+            sys.exit(1 if unreadable else 0)
+        rotted = len(unreadable)
         for ident, path in manifests.items():
             manifest = graft.load(path)
             problems = graft.verify_sources(manifest)

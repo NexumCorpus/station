@@ -715,6 +715,27 @@ class GraftTests(unittest.TestCase):
         self.assertEqual(station.graft.run(manifest_path)["status"], "GRAFT-ROT")
 
 
+class GraftExitCodeTests(unittest.TestCase):
+    def test_graft_listing_exits_1_when_a_manifest_cannot_load(self):
+        import contextlib
+        import io
+        root = Path(tempfile.mkdtemp())
+        (root / "bad").mkdir()
+        (root / "bad" / "manifest.json").write_text(json.dumps({
+            "id": "bad", "source_root": str(root / "no-such-dir"),
+            "check": "check.py", "files": []}), encoding="utf-8")
+        real, buf = station.GRAFTS, io.StringIO()
+        station.GRAFTS = root
+        try:
+            with contextlib.redirect_stdout(buf):
+                with self.assertRaises(SystemExit) as cm:
+                    station.cmd_graft([])
+        finally:
+            station.GRAFTS = real
+        self.assertEqual(cm.exception.code, 1)
+        self.assertIn("GRAFT-ROT", buf.getvalue())
+
+
 class OrganismTests(unittest.TestCase):
     """A body receipt must retain all organs, fixed routes, and its limits."""
 
