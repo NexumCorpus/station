@@ -11,10 +11,12 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, "E:/station")
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
+sys.path.insert(0, str(ROOT))
 from shard_rs import decode  # noqa: E402
 
-SH = Path("E:/station/shards.jsonl")
+SH = (ROOT / "shards.jsonl")
 if not SH.is_file():
     print("NO-SHARDS: shards.jsonl absent — no codeword to fold")
     sys.exit(1)

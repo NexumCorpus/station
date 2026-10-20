@@ -1,2 +1,2 @@
 @echo off
-python "E:\station\station.py" %*
+python "%~dp0station.py" %*

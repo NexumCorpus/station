@@ -7,8 +7,10 @@ import re
 import sys
 from pathlib import Path
 
-src = Path("E:/station/station.py").read_text(encoding="utf-8")
-cap = Path("E:/station/CAPSULE.md").read_text(encoding="utf-8")
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
+src = (ROOT / "station.py").read_text(encoding="utf-8")
+cap = (ROOT / "CAPSULE.md").read_text(encoding="utf-8")
 verbs = set(re.findall(r'\bcmd == "(\w+)"', src)) | {"wake"}
 missing = sorted(v for v in verbs if not re.search(rf"\b{v}\b", cap))
 if missing:

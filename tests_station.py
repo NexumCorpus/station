@@ -2,15 +2,40 @@
 every other repo was the only load-bearing code with no suite of its own.
 Focus: the SPOOR machinery (say/refute/walk/recheck), attribution, errata —
 the newest organs, where regressions would corrupt records silently."""
+import atexit
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+# every mkdtemp() below lands under one directory that is removed at exit
+_TMP_ROOT = tempfile.mkdtemp(prefix="station-tests-")
+tempfile.tempdir = _TMP_ROOT
+atexit.register(shutil.rmtree, _TMP_ROOT, ignore_errors=True)
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import station  # noqa: E402
+
+# Routes run through the platform shell (cmd.exe on Windows, /bin/sh elsewhere),
+# so the tests build them from the running interpreter, not from cmd builtins.
+PY = f'"{sys.executable}"'
+
+
+def echo_route(text):
+    return f'{PY} -c "print(\'{text}\')"'
+
+
+def cat_route(path):
+    return (f'{PY} -c "import sys; sys.stdout.write(open(sys.argv[1]).read())"'
+            f' "{path}"')
+
+
+# a route that crashes yet prints the token a claim expects (what a Python
+# 3.13+ traceback does when it repeats the failing source line)
+CRASH_ECHOING_OK = f'{PY} -c "import sys; sys.stderr.write(\'OK\'); sys.exit(3)"'
 
 
 class StationTests(unittest.TestCase):
@@ -28,30 +53,35 @@ class StationTests(unittest.TestCase):
                 station.SPINE.read_text(encoding="utf-8").splitlines()]
 
     def test_run_check_exit0_without_expect(self):
-        ok, code, _ = station._run_check("cmd /c exit 0", "")
+        ok, code, _ = station._run_check(f'{PY} -c "pass"', "")
         self.assertTrue(ok)
         self.assertEqual(code, 0)
 
     def test_run_check_expect_fragment(self):
-        ok, _, out = station._run_check("cmd /c echo hello-spoor", "hello-spoor")
+        ok, _, out = station._run_check(echo_route("hello-spoor"), "hello-spoor")
         self.assertTrue(ok)
-        bad, _, _ = station._run_check("cmd /c echo hello-spoor", "absent")
+        bad, _, _ = station._run_check(echo_route("hello-spoor"), "absent")
         self.assertFalse(bad)
 
     def test_run_timeout_kills_the_command_tree(self):
         # On Windows the shell alone is not the process that keeps the pipe
         # open; this protects every registered suite from a fake deadline.
+        # The route would write a marker at t=2s; it must not survive the kill.
         import time
+        marker = self.tmp / "survivor.txt"
+        route = (f'{PY} -c "import time, pathlib; time.sleep(2); '
+                 f'pathlib.Path(r\'{marker}\').write_text(\'x\')"')
         start = time.monotonic()
-        code, output = station._run('python -c "import time; time.sleep(5)"',
-                                    str(self.tmp), timeout=1)
+        code, output = station._run(route, str(self.tmp), timeout=1)
         self.assertEqual(code, -1)
         self.assertIn("timeout", output)
-        self.assertLess(time.monotonic() - start, 3)
+        self.assertLess(time.monotonic() - start, 2.5)
+        time.sleep(2)
+        self.assertFalse(marker.exists(), "timed-out command kept running")
 
 
     def test_say_true_claim_lands_as_fact(self):
-        station.cmd_say(["a true thing", "--cmd", "cmd /c echo yes-42",
+        station.cmd_say(["a true thing", "--cmd", echo_route("yes-42"),
                         "--expect", "yes-42"])
         ev = self._spine_events()[-1]
         self.assertEqual(ev["kind"], "fact")
@@ -60,17 +90,149 @@ class StationTests(unittest.TestCase):
 
     def test_say_false_claim_refused_and_recorded(self):
         with self.assertRaises(SystemExit) as cm:
-            station.cmd_say(["a false thing", "--cmd", "cmd /c echo actual",
+            station.cmd_say(["a false thing", "--cmd", echo_route("actual"),
                             "--expect", "claimed"])
         self.assertEqual(cm.exception.code, 1)
         ev = self._spine_events()[-1]
         self.assertEqual(ev["kind"], "refuted")   # false version never a fact
         self.assertFalse(ev["body"]["ok"])
 
+    def test_crash_echoing_the_expected_token_is_not_a_pass(self):
+        ok, code, out = station._run_check(CRASH_ECHOING_OK, "OK")
+        self.assertIn("OK", out)
+        self.assertEqual(code, 3)
+        self.assertFalse(ok)
+
+    def test_say_refuses_a_crashing_route_that_contains_the_expect(self):
+        with self.assertRaises(SystemExit):
+            station.cmd_say(["crashing claim", "--cmd", CRASH_ECHOING_OK,
+                             "--expect", "OK"])
+        self.assertEqual(self._spine_events()[-1]["kind"], "refuted")
+
+    def test_drift_flags_a_crash_that_contains_the_expect(self):
+        import contextlib
+        import io
+        (self.tmp / "drift.jsonl").write_text(json.dumps(
+            {"claim": "crashes", "cmd": CRASH_ECHOING_OK, "expect": "OK"})
+            + "\n", encoding="utf-8")
+        here, buf = station.HERE, io.StringIO()
+        station.HERE = self.tmp
+        try:
+            with contextlib.redirect_stdout(buf):
+                with self.assertRaises(SystemExit) as cm:
+                    station.cmd_drift()
+        finally:
+            station.HERE = here
+        self.assertEqual(cm.exception.code, 1)
+        self.assertIn("DRIFT", buf.getvalue())
+
+    def test_suite_tail_prefers_the_failure_over_a_trailing_warning(self):
+        out = ("Ran 40 tests in 1.4s\nFAILED (failures=5, errors=5)\n"
+               "<sys>:0: ResourceWarning: unclosed file x\n")
+        self.assertEqual(station._suite_tail(out, True),
+                         "FAILED (failures=5, errors=5)")
+        self.assertEqual(station._suite_tail("ok\nall done\n", False),
+                         "all done")
+        self.assertEqual(station._suite_tail("", True), "")
+
+    def test_unknown_suite_name_exits_1_never_passes(self):
+        # a typo'd suite name once read as PASS in live use
+        import contextlib
+        import io
+        real = station._registry
+        station._registry = lambda: {"suites": [
+            {"name": "real", "cwd": str(self.tmp), "cmd": "exit 0"}]}
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                with self.assertRaises(SystemExit) as cm:
+                    station.cmd_suites("rael")
+        finally:
+            station._registry = real
+        self.assertEqual(cm.exception.code, 1)
+        self.assertIn("unknown suite rael", buf.getvalue())
+
+    def test_llm_down_exits_nonzero(self):
+        import contextlib
+        import io
+        real = station.llm
+        station.llm = lambda *a, **k: None
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaises(SystemExit) as cm:
+                    station.cmd_llm("some-model", "hi")
+        finally:
+            station.llm = real
+        self.assertEqual(cm.exception.code, 1)
+
+    def _with_continuity(self, value):
+        old = os.environ.get("STATION_CONTINUITY")
+        os.environ["STATION_CONTINUITY"] = value
+
+        def restore():
+            if old is None:
+                os.environ.pop("STATION_CONTINUITY", None)
+            else:
+                os.environ["STATION_CONTINUITY"] = old
+        self.addCleanup(restore)
+
+    def test_continuity_needs_an_absolute_existing_location(self):
+        self._with_continuity(str(self.tmp))
+        self.assertEqual(station._continuity(), self.tmp)
+        os.environ["STATION_CONTINUITY"] = "relative/continuity"
+        self.assertIsNone(station._continuity())
+
+    def test_backup_refuses_a_relative_continuity_path(self):
+        import contextlib
+        import io
+        name = "station-test-no-such-continuity"
+        self._with_continuity(name)
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(SystemExit) as cm:
+                station.cmd_backup()
+        self.assertEqual(cm.exception.code, 1)
+        self.assertFalse(Path(name).exists())
+
+    def test_rescue_refuses_a_continuity_dir_that_is_not_its_own_repo(self):
+        import contextlib
+        import io
+        import subprocess
+        repo, cont = self.tmp / "repo", self.tmp / "cont"
+        repo.mkdir()
+        cont.mkdir()                          # exists, but has no .git
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        (repo / "untracked.txt").write_text("x", encoding="utf-8")
+        self._with_continuity(str(cont))
+        real = station._registry
+        station._registry = lambda: {"repos": {"r": str(repo)}}
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaises(SystemExit) as cm:
+                    station.cmd_rescue("r")
+        finally:
+            station._registry = real
+        self.assertEqual(cm.exception.code, 1)
+        self.assertFalse((cont / "rescue").exists())
+
+    @unittest.skipIf(os.name == "nt", "the guard is for non-Windows hosts")
+    def test_wsl_verb_refuses_off_windows_and_writes_nothing(self):
+        import contextlib
+        import io
+        before = os.getcwd()
+        os.chdir(self.tmp)
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaises(SystemExit) as cm:
+                    station.cmd_wsl("", "-")
+            self.assertEqual(cm.exception.code, 1)
+            self.assertEqual(os.listdir(self.tmp), [])
+        finally:
+            os.chdir(before)
+
     def test_walk_facts_detects_world_move(self):
         probe = self.tmp / "world.txt"
         probe.write_text("state-A", encoding="utf-8")
-        station.cmd_say(["world is A", "--cmd", f'cmd /c type "{probe}"',
+        station.cmd_say(["world is A", "--cmd", cat_route(probe),
                         "--expect", "state-A"])
         (f, ok, _), = station._walk_facts(1)
         self.assertTrue(ok)                        # true while world holds
@@ -140,7 +302,7 @@ class StationTests(unittest.TestCase):
     def test_recheck_stale_lands_one_deduped_spine_event(self):
         probe = self.tmp / "world.txt"
         probe.write_text("state-A", encoding="utf-8")
-        station.cmd_say(["world is A", "--cmd", f'cmd /c type "{probe}"',
+        station.cmd_say(["world is A", "--cmd", cat_route(probe),
                         "--expect", "state-A"])
         probe.write_text("state-B", encoding="utf-8")   # the world moves
         for _ in range(2):                              # unattended cadence
@@ -155,7 +317,7 @@ class StationTests(unittest.TestCase):
     def test_superseded_fact_leaves_the_walk(self):
         probe = self.tmp / "world.txt"
         probe.write_text("state-A", encoding="utf-8")
-        route = f'cmd /c type "{probe}"'
+        route = cat_route(probe)
         station.cmd_say(["world is A", "--cmd", route, "--expect", "state-A"])
         probe.write_text("state-B", encoding="utf-8")   # world moves on
         station.cmd_say(["world is B", "--cmd", route, "--expect", "state-B"])
@@ -168,7 +330,7 @@ class StationTests(unittest.TestCase):
     def test_retire_removes_fact_from_walk_but_not_record(self):
         probe = self.tmp / "world.txt"
         probe.write_text("state-A", encoding="utf-8")
-        station.cmd_say(["moment fact", "--cmd", f'cmd /c type "{probe}"',
+        station.cmd_say(["moment fact", "--cmd", cat_route(probe),
                         "--expect", "state-A"])
         probe.write_text("state-B", encoding="utf-8")   # fact now stale
         station.cmd_retire("moment fact")

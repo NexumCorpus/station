@@ -10,14 +10,16 @@ import json
 import sys
 from pathlib import Path
 
-G = Path("E:/station/glyphs.jsonl")
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
+G = (ROOT / "glyphs.jsonl")
 if not G.is_file():
     print("NO-GLYPHS: glyphs.jsonl absent")
     sys.exit(1)
 rows = [json.loads(l) for l in G.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 sharded = set()
-sp = Path("E:/station/shards.jsonl")
+sp = (ROOT / "shards.jsonl")
 if sp.is_file():
     sharded = {json.loads(l)["path"] for l in sp.read_text(encoding="utf-8")
                .splitlines() if l.strip()}

@@ -12,8 +12,11 @@ Two anti-theater rules the ledger paid for, both honored here:
 Dormant (born-passing) until >=2 REAL cert-eras exist; then it fires the warning
 if efficiency regressed across a cert boundary."""
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "E:/station")
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
+sys.path.insert(0, str(ROOT))
 import station  # noqa: E402
 
 eras, _cur = station._fold_eras()

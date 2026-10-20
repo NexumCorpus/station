@@ -1,3 +1,4 @@
 # witnessed ledgers: bytes are notarized; git must never rewrite line endings
 *.jsonl text eol=lf
 *.json  text eol=lf
+station text eol=lf

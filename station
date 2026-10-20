@@ -1,0 +1,3 @@
+#!/bin/sh
+# POSIX wrapper: put this directory on PATH and run `station <verb>`.
+exec "${PYTHON:-python3}" "$(cd "$(dirname "$0")" && pwd -P)/station.py" "$@"

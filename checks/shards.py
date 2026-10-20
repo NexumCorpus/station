@@ -13,10 +13,12 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, "E:/station")
+ROOT = Path(__file__).resolve().parent.parent  # this checkout
+
+sys.path.insert(0, str(ROOT))
 from shard_rs import decode  # noqa: E402
 
-SHARDS = Path("E:/station/shards.jsonl")
+SHARDS = (ROOT / "shards.jsonl")
 if not SHARDS.is_file():
     print("NO-SHARDS: shards.jsonl absent — the primitive minted nothing")
     sys.exit(1)
